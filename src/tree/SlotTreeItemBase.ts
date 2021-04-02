@@ -5,7 +5,7 @@
 
 import { WebSiteManagementModels } from '@azure/arm-appservice';
 import { AppSettingsTreeItem, AppSettingTreeItem, deleteSite, DeploymentsTreeItem, DeploymentTreeItem, getFile, ISiteTreeRoot, LogFilesTreeItem, SiteClient, SiteFilesTreeItem } from 'vscode-azureappservice';
-import { AzExtTreeItem, AzureParentTreeItem, TreeItemIconPath } from 'vscode-azureextensionui';
+import { AzExtTreeItem, AzureParentTreeItem, IActionContext, TreeItemIconPath } from 'vscode-azureextensionui';
 import { runFromPackageKey } from '../constants';
 import { IParsedHostJson, parseHostJson } from '../funcConfig/host';
 import { FuncVersion, latestGAVersion, tryParseFuncVersion } from '../FuncVersion';
@@ -131,12 +131,12 @@ export abstract class SlotTreeItemBase extends AzureParentTreeItem<ISiteTreeRoot
         return result;
     }
 
-    public async getApplicationSettings(): Promise<ApplicationSettings> {
+    public async getApplicationSettings(_context: IActionContext): Promise<ApplicationSettings> {
         const appSettings: WebSiteManagementModels.StringDictionary = await this.root.client.listApplicationSettings();
         return appSettings.properties || {};
     }
 
-    public async setApplicationSetting(key: string, value: string): Promise<void> {
+    public async setApplicationSetting(_context: IActionContext, key: string, value: string): Promise<void> {
         const settings: WebSiteManagementModels.StringDictionary = await this.root.client.listApplicationSettings();
         if (!settings.properties) {
             settings.properties = {};

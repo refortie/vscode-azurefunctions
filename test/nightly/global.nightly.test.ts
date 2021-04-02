@@ -16,6 +16,8 @@ export const resourceGroupsToDelete: string[] = [];
 
 // Runs before all nightly tests
 suiteSetup(async function (this: Mocha.Context): Promise<void> {
+    // todo
+    console.log(`nightly suiteSetup started`);
     if (longRunningTestsEnabled) {
         this.timeout(2 * 60 * 1000);
 
@@ -25,6 +27,8 @@ suiteSetup(async function (this: Mocha.Context): Promise<void> {
         ext.tree = new AzExtTreeDataProvider(ext.azureAccountTreeItem, 'azureFunctions.loadMore');
         testClient = createAzureClient(testAccount.getSubscriptionContext(), WebSiteManagementClient);
     }
+    // todo
+    console.log(`nightly suiteSetup ended`);
 });
 
 suiteTeardown(async function (this: Mocha.Context): Promise<void> {

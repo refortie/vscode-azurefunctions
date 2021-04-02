@@ -9,59 +9,45 @@ import * as fse from 'fs-extra';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { TestInput } from 'vscode-azureextensiondev';
-import { createGenericClient, getRandomHexString, nonNullProp } from '../../extension.bundle';
-import { cleanTestWorkspace, longRunningTestsEnabled, testUserInput, testWorkspacePath } from '../global.test';
+import { copyFunctionUrl, createGenericClient, createNewProjectInternal, deployProductionSlot, getRandomHexString, nonNullProp } from '../../extension.bundle';
+import { addParallelSuite, IParallelTest, runInSeries } from '../addParallelSuite';
+import { createTestActionContext, getTestWorkspaceFolder } from '../global.test';
 import { getCSharpValidateOptions, getJavaScriptValidateOptions, getPowerShellValidateOptions, getPythonValidateOptions, getTypeScriptValidateOptions, IValidateProjectOptions, validateProject } from '../project/validateProject';
 import { getRotatingAuthLevel, getRotatingLocation, getRotatingNodeVersion, getRotatingPythonVersion } from './getRotatingValue';
 import { resourceGroupsToDelete } from './global.nightly.test';
 
-suite('Create Project and Deploy', function (this: Mocha.Suite): void {
-    this.timeout(7 * 60 * 1000);
+interface ITestCase extends ICreateProjectAndDeployOptions {
+    title: string;
+    buildMachineOsToSkip?: NodeJS.Platform;
+}
 
-    suiteSetup(async function (this: Mocha.Context): Promise<void> {
-        if (!longRunningTestsEnabled) {
-            this.skip();
-        }
-    });
+const testCases: ITestCase[] = [
+    { title: 'JavaScript', ...getJavaScriptValidateOptions(true), deployInputs: [getRotatingNodeVersion()] },
+    { title: 'TypeScript', ...getTypeScriptValidateOptions(), deployInputs: [getRotatingNodeVersion()] },
+    { title: 'C# .NET Core 3.1', ...getCSharpValidateOptions('netcoreapp3.1'), createProjectInputs: [/net.*3/i], deployInputs: [/net.*3/i], createFunctionInputs: ['Company.Function'] },
+    { title: 'C# .NET 5', ...getCSharpValidateOptions('net5.0'), createProjectInputs: [/net.*5/i], deployInputs: [/net.*5/i], createFunctionInputs: ['Company.Function'] },
+    { title: 'PowerShell', ...getPowerShellValidateOptions(), deployInputs: [/powershell.*7/i] },
+    { title: 'Python', buildMachineOsToSkip: 'win32', ...getPythonValidateOptions('.venv'), createProjectInputs: [/3\.6/], deployInputs: [getRotatingPythonVersion()] }
+]
 
-    suiteTeardown(async () => {
-        if (longRunningTestsEnabled) {
-            await cleanTestWorkspace();
-        }
-    });
+const parallelTests: IParallelTest[] = [];
+for (const testCase of testCases) {
+    if (testCase.buildMachineOsToSkip !== process.platform) {
+        parallelTests.push({
+            title: testCase.title,
+            callback: async () => {
+                // todo
+                console.log(`testCreateProjectAndDeploy started (${testCase.title})`);
+                await testCreateProjectAndDeploy(testCase);
+            }
+        });
+    }
+}
 
-    test('JavaScript', async () => {
-        await testCreateProjectAndDeploy({ ...getJavaScriptValidateOptions(true), deployInputs: [getRotatingNodeVersion()] });
-    });
-
-    test('TypeScript', async () => {
-        await testCreateProjectAndDeploy({ ...getTypeScriptValidateOptions(), deployInputs: [getRotatingNodeVersion()] });
-    });
-
-    test('C# .NET Core 3.1', async () => {
-        const namespace: string = 'Company.Function';
-        const net3RegExp = /net.*3/i;
-        await testCreateProjectAndDeploy({ ...getCSharpValidateOptions('testWorkspace', 'netcoreapp3.1'), createProjectInputs: [net3RegExp], deployInputs: [net3RegExp], createFunctionInputs: [namespace] });
-    });
-
-    test('C# .NET 5', async () => {
-        const namespace: string = 'Company.Function';
-        const net5RegExp = /net.*5/i;
-        await testCreateProjectAndDeploy({ ...getCSharpValidateOptions('testWorkspace', 'net5.0'), createProjectInputs: [net5RegExp], deployInputs: [net5RegExp], createFunctionInputs: [namespace] });
-    });
-
-    test('PowerShell', async function (this: Mocha.Context): Promise<void> {
-        await testCreateProjectAndDeploy({ ...getPowerShellValidateOptions(), deployInputs: [/powershell.*7/i] });
-    });
-
-    test('Python', async function (this: Mocha.Context): Promise<void> {
-        // Disabling on Windows until we can get it to work
-        if (process.platform === 'win32') {
-            this.skip();
-        }
-
-        await testCreateProjectAndDeploy({ ...getPythonValidateOptions('.venv'), createProjectInputs: [/3\.6/], deployInputs: [getRotatingPythonVersion()] });
-    });
+addParallelSuite(parallelTests, {
+    title: 'Create Project and Deploy',
+    timeoutMS: 7 * 60 * 1000,
+    isLongRunning: true
 });
 
 interface ICreateProjectAndDeployOptions extends IValidateProjectOptions {
@@ -72,32 +58,34 @@ interface ICreateProjectAndDeployOptions extends IValidateProjectOptions {
 
 async function testCreateProjectAndDeploy(options: ICreateProjectAndDeployOptions): Promise<void> {
     const functionName: string = 'func' + getRandomHexString(); // function name must start with a letter
-    await cleanTestWorkspace();
 
     options.createProjectInputs = options.createProjectInputs || [];
     options.createFunctionInputs = options.createFunctionInputs || [];
     options.deployInputs = options.deployInputs || [];
     options.excludedPaths = options.excludedPaths || [];
 
-    await testUserInput.runWithInputs([testWorkspacePath, options.language, ...options.createProjectInputs, /http\s*trigger/i, functionName, ...options.createFunctionInputs, getRotatingAuthLevel()], async () => {
-        await vscode.commands.executeCommand('azureFunctions.createNewProject');
+    const testWorkspacePath = getTestWorkspaceFolder();
+    const createContext = createTestActionContext();
+    await createContext.ui.runWithInputs([testWorkspacePath, options.language, ...options.createProjectInputs, /http\s*trigger/i, functionName, ...options.createFunctionInputs, getRotatingAuthLevel()], async () => {
+        await createNewProjectInternal(createContext, {})
     });
     options.excludedPaths.push('.git'); // Since the workspace is already in a git repo
     await validateProject(testWorkspacePath, options);
 
     const routePrefix: string = getRandomHexString();
-    await addRoutePrefixToProject(routePrefix);
+    await addRoutePrefixToProject(testWorkspacePath, routePrefix);
 
     const appName: string = 'funcBasic' + getRandomHexString();
     resourceGroupsToDelete.push(appName);
-    await testUserInput.runWithInputs([/create new function app/i, appName, ...options.deployInputs, getRotatingLocation()], async () => {
-        await vscode.commands.executeCommand('azureFunctions.deploy');
+    const deployContext = createTestActionContext();
+    await deployContext.ui.runWithInputs([testWorkspacePath, /create new function app/i, appName, ...options.deployInputs, getRotatingLocation()], async () => {
+        await deployProductionSlot(deployContext)
     });
 
     await validateFunctionUrl(appName, functionName, routePrefix);
 }
 
-async function addRoutePrefixToProject(routePrefix: string): Promise<void> {
+async function addRoutePrefixToProject(testWorkspacePath: string, routePrefix: string): Promise<void> {
     const hostPath: string = path.join(testWorkspacePath, 'host.json');
     const hostJson: any = await fse.readJSON(hostPath);
     hostJson.extensions = {
@@ -112,12 +100,17 @@ async function validateFunctionUrl(appName: string, functionName: string, routeP
     // first input matches any item except local project (aka it should match the test subscription)
     const inputs: (string | RegExp)[] = [/^((?!Local Project).)*$/i, appName, functionName];
 
-    await vscode.env.clipboard.writeText(''); // Clear the clipboard
-    await testUserInput.runWithInputs(inputs, async () => {
-        await vscode.commands.executeCommand('azureFunctions.copyFunctionUrl');
+    const copyContext = createTestActionContext();
+    let functionUrl: string | undefined;
+    await runInSeries('copyFunctionUrl', async () => {
+        await vscode.env.clipboard.writeText(''); // Clear the clipboard
+        await copyContext.ui.runWithInputs(inputs, async () => {
+            await copyFunctionUrl(copyContext);
+        });
+        functionUrl = await vscode.env.clipboard.readText();
     });
-    const functionUrl: string = await vscode.env.clipboard.readText();
 
+    assert.ok(functionUrl, 'Failed to get function url');
     assert.ok(functionUrl.includes(routePrefix), 'Function url did not include routePrefix.');
 
     const client: ServiceClient = await createGenericClient();

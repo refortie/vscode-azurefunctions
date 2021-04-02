@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CentralTemplateProvider, FuncVersion, ProjectLanguage, supportedLanguages as resourceLanguages, TemplateProviderBase } from '../extension.bundle';
-import { createTestActionContext, testWorkspacePath, updateBackupTemplates } from './global.test';
+import { createTestActionContext, getTestWorkspaceFolder, updateBackupTemplates } from './global.test';
 import { javaUtils } from './utils/javaUtils';
 
 type WorkerRuntime = { language: ProjectLanguage; projectTemplateKey?: string, versions: FuncVersion[] }
@@ -22,7 +22,8 @@ suite('Backup templates', () => {
     });
 
     test('Update', async () => {
-        await javaUtils.addJavaProjectToWorkspace();
+        const testWorkspacePath = getTestWorkspaceFolder();
+        await javaUtils.addJavaProjectToWorkspace(testWorkspacePath);
 
         const allVersions = Object.values(FuncVersion);
         const workers: WorkerRuntime[] = [
@@ -33,6 +34,7 @@ suite('Backup templates', () => {
             { language: ProjectLanguage.Java, versions: [FuncVersion.v2, FuncVersion.v3] }
         ];
 
+        const context = createTestActionContext();
         for (const worker of workers) {
             for (const version of Object.values(FuncVersion)) {
                 if (!worker.versions?.includes(version)) {
@@ -42,11 +44,11 @@ suite('Backup templates', () => {
                 const providers: TemplateProviderBase[] = CentralTemplateProvider.getProviders(testWorkspacePath, worker.language, version, worker.projectTemplateKey);
 
                 for (const provider of providers) {
-                    const templateVersion: string = await provider.getLatestTemplateVersion();
+                    const templateVersion: string = await provider.getLatestTemplateVersion(context);
 
                     async function updateBackupTemplatesInternal(): Promise<void> {
                         await provider.getLatestTemplates(createTestActionContext(), templateVersion);
-                        await provider.updateBackupTemplates();
+                        await provider.updateBackupTemplates(context);
                     }
 
                     if (worker.language === ProjectLanguage.JavaScript) {

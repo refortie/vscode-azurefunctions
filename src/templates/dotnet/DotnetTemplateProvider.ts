@@ -46,10 +46,10 @@ export class DotnetTemplateProvider extends TemplateProviderBase {
         return await dotnetUtils.getTemplateKeyFromProjFile(this.projectPath, this.version, this.language);
     }
 
-    public async getCachedTemplates(): Promise<ITemplates | undefined> {
+    public async getCachedTemplates(context: IActionContext): Promise<ITemplates | undefined> {
         const projKey = await this.getProjKey();
-        const projectFilePath: string = getDotnetProjectTemplatePath(this.version, projKey);
-        const itemFilePath: string = getDotnetItemTemplatePath(this.version, projKey);
+        const projectFilePath: string = getDotnetProjectTemplatePath(context, this.version, projKey);
+        const itemFilePath: string = getDotnetItemTemplatePath(context, this.version, projKey);
         if (!await fse.pathExists(projectFilePath) || !await fse.pathExists(itemFilePath)) {
             return undefined;
         }
@@ -62,8 +62,8 @@ export class DotnetTemplateProvider extends TemplateProviderBase {
         }
     }
 
-    public async getLatestTemplateVersion(): Promise<string> {
-        return await cliFeedUtils.getLatestVersion(this.version);
+    public async getLatestTemplateVersion(context: IActionContext): Promise<string> {
+        return await cliFeedUtils.getLatestVersion(context, this.version);
     }
 
     public async getLatestTemplates(context: IActionContext, latestTemplateVersion: string): Promise<ITemplates> {
@@ -72,8 +72,8 @@ export class DotnetTemplateProvider extends TemplateProviderBase {
         const funcRelease: cliFeedUtils.IRelease = await cliFeedUtils.getRelease(latestTemplateVersion);
 
         const projKey = await this.getProjKey();
-        const projectFilePath: string = getDotnetProjectTemplatePath(this.version, projKey);
-        const itemFilePath: string = getDotnetItemTemplatePath(this.version, projKey);
+        const projectFilePath: string = getDotnetProjectTemplatePath(context, this.version, projKey);
+        const itemFilePath: string = getDotnetItemTemplatePath(context, this.version, projKey);
 
         const netRelease = Object.values(funcRelease.workerRuntimes.dotnet).find(r => projKey === dotnetUtils.getTemplateKeyFromFeedEntry(r));
         if (!netRelease) {
@@ -90,16 +90,16 @@ export class DotnetTemplateProvider extends TemplateProviderBase {
 
     public async getBackupTemplates(context: IActionContext): Promise<ITemplates> {
         const projKey = await this.getProjKey();
-        const files: string[] = [getDotnetProjectTemplatePath(this.version, projKey), getDotnetItemTemplatePath(this.version, projKey)];
+        const files: string[] = [getDotnetProjectTemplatePath(context, this.version, projKey), getDotnetItemTemplatePath(context, this.version, projKey)];
         for (const file of files) {
             await fse.copy(this.convertToBackupFilePath(projKey, file), file);
         }
         return await this.parseTemplates(context, projKey);
     }
 
-    public async updateBackupTemplates(): Promise<void> {
+    public async updateBackupTemplates(context: IActionContext): Promise<void> {
         const projKey = await this.getProjKey();
-        const files: string[] = [getDotnetProjectTemplatePath(this.version, projKey), getDotnetItemTemplatePath(this.version, projKey)];
+        const files: string[] = [getDotnetProjectTemplatePath(context, this.version, projKey), getDotnetItemTemplatePath(context, this.version, projKey)];
         for (const file of files) {
             await fse.copy(file, this.convertToBackupFilePath(projKey, file));
         }
@@ -115,10 +115,10 @@ export class DotnetTemplateProvider extends TemplateProviderBase {
         await this.updateCachedValue(projKey, this._rawTemplates);
     }
 
-    public async clearCachedTemplates(): Promise<void> {
+    public async clearCachedTemplates(context: IActionContext): Promise<void> {
         const projKey = await this.getProjKey();
         await this.deleteCachedValue(projKey);
-        await fse.remove(getDotnetTemplateDir(this.version, projKey));
+        await fse.remove(getDotnetTemplateDir(context, this.version, projKey));
     }
 
     private async parseTemplates(context: IActionContext, projKey: string): Promise<ITemplates> {

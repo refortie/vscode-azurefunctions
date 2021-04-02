@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { IActionContext } from 'vscode-azureextensionui';
 import { IParsedHostJson } from '../funcConfig/host';
 import { FuncVersion } from '../FuncVersion';
 import { ProjectSource } from './projectContextValues';
@@ -14,6 +15,6 @@ export interface IProjectTreeItem {
     hostUrl: string;
     getHostJson(): Promise<IParsedHostJson>;
     getVersion(): Promise<FuncVersion>;
-    getApplicationSettings(): Promise<ApplicationSettings>;
-    setApplicationSetting(key: string, value: string): Promise<void>;
+    getApplicationSettings(context: IActionContext): Promise<ApplicationSettings>;
+    setApplicationSetting(context: IActionContext, key: string, value: string): Promise<void>;
 }

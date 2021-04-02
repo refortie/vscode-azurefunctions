@@ -6,14 +6,14 @@
 import * as fse from 'fs-extra';
 import * as path from 'path';
 import { FuncVersion, getRandomHexString } from '../../extension.bundle';
-import { longRunningTestsEnabled, testFolderPath } from '../global.test';
+import { createTestActionContext, longRunningTestsEnabled, testFolderPath } from '../global.test';
 import { runWithFuncSetting } from '../runWithSetting';
 import { createAndValidateProject } from './createAndValidateProject';
 import { getPythonValidateOptions } from './validateProject';
 
 suite('Create New Python Project', () => {
     test('skip venv', async () => {
-        await createAndValidateProject({ ...getPythonValidateOptions(undefined, FuncVersion.v2), inputs: [/skip/i] });
+        await createAndValidateProject(createTestActionContext(), { ...getPythonValidateOptions(undefined, FuncVersion.v2), inputs: [/skip/i] });
     });
 
     test('enter venv', async function (this: Mocha.Context): Promise<void> {
@@ -23,12 +23,12 @@ suite('Create New Python Project', () => {
         this.timeout(2 * 60 * 1000);
 
         const alias: string = process.platform === 'win32' ? 'py -3.6' : 'python3.6';
-        await createAndValidateProject({ ...getPythonValidateOptions('.venv', FuncVersion.v2), inputs: [/enter/i, alias] });
+        await createAndValidateProject(createTestActionContext(), { ...getPythonValidateOptions('.venv', FuncVersion.v2), inputs: [/enter/i, alias] });
     });
 
     test('no venv', async () => {
         await runWithFuncSetting('createPythonVenv', false, async () => {
-            await createAndValidateProject({ ...getPythonValidateOptions(undefined, FuncVersion.v2) });
+            await createAndValidateProject(createTestActionContext(), { ...getPythonValidateOptions(undefined, FuncVersion.v2) });
         });
     });
 
@@ -36,7 +36,7 @@ suite('Create New Python Project', () => {
         const projectPath: string = path.join(testFolderPath, getRandomHexString());
         const venvName: string = 'testVenv';
         await createTestVenv(projectPath, venvName);
-        await createAndValidateProject({ ...getPythonValidateOptions(venvName, FuncVersion.v2), projectPath });
+        await createAndValidateProject(createTestActionContext(), { ...getPythonValidateOptions(venvName, FuncVersion.v2), projectPath });
     });
 
     test('multiple existing venvs', async () => {
@@ -44,7 +44,7 @@ suite('Create New Python Project', () => {
         const venvName: string = 'testVenv2';
         await createTestVenv(projectPath, 'testVenv1');
         await createTestVenv(projectPath, venvName);
-        await createAndValidateProject({ ...getPythonValidateOptions(venvName, FuncVersion.v2), projectPath, inputs: [venvName] });
+        await createAndValidateProject(createTestActionContext(), { ...getPythonValidateOptions(venvName, FuncVersion.v2), projectPath, inputs: [venvName] });
     });
 });
 

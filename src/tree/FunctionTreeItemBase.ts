@@ -5,7 +5,7 @@
 
 import { WebSiteManagementModels } from '@azure/arm-appservice';
 import * as url from 'url';
-import { AzExtTreeItem, TreeItemIconPath } from 'vscode-azureextensionui';
+import { AzExtTreeItem, IActionContext, TreeItemIconPath } from 'vscode-azureextensionui';
 import { HttpAuthLevel, ParsedFunctionJson } from '../funcConfig/function';
 import { IParsedHostJson } from '../funcConfig/host';
 import { FuncVersion } from '../FuncVersion';
@@ -101,12 +101,12 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
 
     public abstract getKey(): Promise<string | undefined>;
 
-    public async initAsync(): Promise<void> {
+    public async initAsync(context: IActionContext): Promise<void> {
         if (this.isHttpTrigger) {
             await this.refreshTriggerUrl();
         }
 
-        await this.refreshDisabledState();
+        await this.refreshDisabledState(context);
     }
 
     private async refreshTriggerUrl(): Promise<void> {
@@ -133,7 +133,7 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
     /**
      * https://docs.microsoft.com/azure/azure-functions/disable-function
      */
-    private async refreshDisabledState(): Promise<void> {
+    private async refreshDisabledState(context: IActionContext): Promise<void> {
         if (this._func) {
             this._disabled = !!this._func.isDisabled;
         } else {
@@ -141,7 +141,7 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
             if (version === FuncVersion.v1) {
                 this._disabled = this._config.disabled;
             } else {
-                const appSettings: ApplicationSettings = await this.parent.parent.getApplicationSettings();
+                const appSettings: ApplicationSettings = await this.parent.parent.getApplicationSettings(context);
 
                 /**
                  * The docs only officially mentioned 'true' and 'false', but here is what I found:

@@ -9,7 +9,7 @@ import { ext } from '../extensionVariables';
 import { localize } from '../localize';
 import { FunctionTreeItemBase } from '../tree/FunctionTreeItemBase';
 
-export async function copyFunctionUrl(context: IActionContext, node?: FunctionTreeItemBase): Promise<void> {
+export async function copyFunctionUrl(context: IActionContext, node?: FunctionTreeItemBase): Promise<string> {
     if (!node) {
         const noItemFoundErrorMessage: string = localize('noHTTPFunctions', 'No HTTP functions found.');
         node = await ext.tree.showTreeItemPicker<FunctionTreeItemBase>(/Function;Http;/i, { ...context, noItemFoundErrorMessage });
@@ -17,6 +17,7 @@ export async function copyFunctionUrl(context: IActionContext, node?: FunctionTr
 
     if (node.triggerUrl) {
         await vscode.env.clipboard.writeText(node.triggerUrl);
+        return node.triggerUrl;
     } else {
         throw new Error(localize('CopyFailedForNonHttp', 'Function URLs can only be used for HTTP triggers.'));
     }

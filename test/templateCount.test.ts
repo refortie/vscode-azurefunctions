@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { CentralTemplateProvider, FuncVersion, IFunctionTemplate, ProjectLanguage, TemplateFilter, TemplateSource } from '../extension.bundle';
-import { createTestActionContext, longRunningTestsEnabled, runForTemplateSource, skipStagingTemplateSource, testWorkspacePath } from './global.test';
+import { createTestActionContext, getTestWorkspaceFolder, longRunningTestsEnabled, runForTemplateSource, skipStagingTemplateSource } from './global.test';
 import { javaUtils } from './utils/javaUtils';
 
 addSuite(undefined);
@@ -41,6 +41,11 @@ function addSuite(source: TemplateSource | undefined): void {
             // { language: ProjectLanguage.Java, version: FuncVersion.v3, expectedCount: 4}]
         ];
 
+        let testWorkspacePath: string;
+        suiteSetup(async () => {
+            testWorkspacePath = getTestWorkspaceFolder();
+        });
+
         for (const { language, version, expectedCount, projectTemplateKey } of cases) {
             let testName: string = `${language} ${version}`;
             if (projectTemplateKey) {
@@ -52,11 +57,12 @@ function addSuite(source: TemplateSource | undefined): void {
                 }
 
                 if (language === ProjectLanguage.Java) {
-                    await javaPreTest(this);
+                    await javaPreTest(this, testWorkspacePath);
                 }
 
-                await runForTemplateSource(source, async (provider: CentralTemplateProvider) => {
-                    const templates: IFunctionTemplate[] = await provider.getFunctionTemplates(createTestActionContext(), testWorkspacePath, language, version, TemplateFilter.Verified, projectTemplateKey);
+                const context = createTestActionContext()
+                await runForTemplateSource(context, source, async (provider: CentralTemplateProvider) => {
+                    const templates: IFunctionTemplate[] = await provider.getFunctionTemplates(context, testWorkspacePath, language, version, TemplateFilter.Verified, projectTemplateKey);
                     assert.equal(templates.length, expectedCount);
                 });
             });
@@ -64,11 +70,11 @@ function addSuite(source: TemplateSource | undefined): void {
     });
 }
 
-async function javaPreTest(testContext: Mocha.Context): Promise<void> {
+async function javaPreTest(testContext: Mocha.Context, testWorkspacePath: string): Promise<void> {
     if (!longRunningTestsEnabled) {
         testContext.skip();
     }
     testContext.timeout(120 * 1000);
 
-    await javaUtils.addJavaProjectToWorkspace();
+    await javaUtils.addJavaProjectToWorkspace(testWorkspacePath);
 }

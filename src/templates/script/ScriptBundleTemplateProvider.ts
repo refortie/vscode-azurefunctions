@@ -11,6 +11,7 @@ import { IBundleMetadata, parseHostJson } from '../../funcConfig/host';
 import { localize } from '../../localize';
 import { bundleFeedUtils } from '../../utils/bundleFeedUtils';
 import { feedUtils } from '../../utils/feedUtils';
+import { parseJson } from '../../utils/parseJson';
 import { IBindingTemplate } from '../IBindingTemplate';
 import { IFunctionTemplate } from '../IFunctionTemplate';
 import { ITemplates } from '../ITemplates';
@@ -25,14 +26,14 @@ export class ScriptBundleTemplateProvider extends ScriptTemplateProvider {
         return bundleFeedUtils.defaultBundleId;
     }
 
-    public async getLatestTemplateVersion(): Promise<string> {
+    public async getLatestTemplateVersion(context: IActionContext): Promise<string> {
         const bundleMetadata: IBundleMetadata | undefined = await this.getBundleInfo();
-        return await bundleFeedUtils.getLatestTemplateVersion(bundleMetadata);
+        return await bundleFeedUtils.getLatestTemplateVersion(context, bundleMetadata);
     }
 
-    public async getLatestTemplates(_context: IActionContext, latestTemplateVersion: string): Promise<ITemplates> {
+    public async getLatestTemplates(context: IActionContext, latestTemplateVersion: string): Promise<ITemplates> {
         const bundleMetadata: IBundleMetadata | undefined = await this.getBundleInfo();
-        const release: bundleFeedUtils.ITemplatesRelease = await bundleFeedUtils.getRelease(bundleMetadata, latestTemplateVersion);
+        const release: bundleFeedUtils.ITemplatesRelease = await bundleFeedUtils.getRelease(context, bundleMetadata, latestTemplateVersion);
 
         const language: string = this.getResourcesLanguage();
         const resourcesUrl: string = release.resources.replace('{locale}', language);
@@ -67,7 +68,8 @@ export class ScriptBundleTemplateProvider extends ScriptTemplateProvider {
             const hostJsonPath: string = path.join(this.projectPath, hostFileName);
             if (await fse.pathExists(hostJsonPath)) {
                 try {
-                    data = await fse.readJSON(hostJsonPath);
+                    const fileContents = (await fse.readFile(hostJsonPath)).toString();
+                    data = parseJson(fileContents);
                 } catch (error) {
                     throw new Error(localize('failedToParseHostJson', 'Failed to parse host.json: "{0}"', parseError(error).message));
                 }

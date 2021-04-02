@@ -26,7 +26,7 @@ export async function validateRemoteBuild(context: IActionContext, client: SiteC
             await context.ui.showWarningMessage(message, { learnMoreLink, modal: true }, downgrade);
             context.telemetry.properties.cancelStep = undefined;
 
-            const projectPath: string = await tryGetFunctionProjectRoot(workspacePath, true /* suppressPrompt */) || workspacePath;
+            const projectPath: string = await tryGetFunctionProjectRoot(context, workspacePath, true /* suppressPrompt */) || workspacePath;
             await updateWorkspaceSetting(remoteBuildKey, false, workspacePath);
             await updateWorkspaceSetting(preDeployTaskSetting, packTaskName, workspacePath);
             const zipFileName: string = path.basename(projectPath) + '.zip';

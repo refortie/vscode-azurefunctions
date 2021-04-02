@@ -67,7 +67,7 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
 
         const folders: readonly WorkspaceFolder[] = workspace.workspaceFolders || [];
         for (const folder of folders) {
-            const projectPath: string | undefined = await tryGetFunctionProjectRoot(folder.uri.fsPath, true /* suppressPrompt */);
+            const projectPath: string | undefined = await tryGetFunctionProjectRoot(context, folder.uri.fsPath, true /* suppressPrompt */);
             if (projectPath) {
                 try {
                     hasLocalProject = true;
@@ -115,6 +115,9 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
             ti.commandArgs = [];
             children.unshift(ti);
         }
+
+        // todo
+        console.log(`AzureAccountTreeItemWithProjects Children: ${children.map(c => c.label).join(',')}`);
 
         return children;
     }
