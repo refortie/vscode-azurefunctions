@@ -19,7 +19,9 @@ suite('Create Project and Deploy', function (this: Mocha.Suite): void {
     this.timeout(7 * 60 * 1000);
 
     suiteSetup(async function (this: Mocha.Context): Promise<void> {
-        this.skip();
+        if (!longRunningTestsEnabled) {
+            this.skip();
+        }
     });
 
     suiteTeardown(async () => {
