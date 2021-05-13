@@ -216,6 +216,18 @@ export abstract class SlotTreeItemBase extends AzureParentTreeItem<ISiteTreeRoot
     }
 
     public async deleteTreeItemImpl(): Promise<void> {
+        const plan = await this.root.client.getAppServicePlan();
+        if (!plan) {
+            console.log('PLAN GONE');
+        } else {
+            console.log(`PLAN NUM: "${plan.numberOfSites}"`);
+            console.log(`PLAN id: "${plan.id}"`);
+            console.log(`PLAN name: "${plan.name}"`);
+            console.log(`PLAN kind: "${plan.kind}"`);
+            console.log(`PLAN type: "${plan.type}"`);
+            console.log(`PLAN location: "${plan.location}"`);
+        }
+        console.log(`IS SLOT: ${this.root.client.isSlot}`);
         await deleteSite(this.root.client);
     }
 }
