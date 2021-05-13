@@ -212,7 +212,7 @@ async function verifyPlanExists(context: IActionContext, siteClient: SiteClient)
     // eslint-disable-next-line no-constant-condition
     while (true) {
         const plan = await siteClient.getAppServicePlan();
-        if (plan || Date.now() > startTime + 60 * 1000) {
+        if (plan || Date.now() > startTime + 3 * 60 * 1000) {
             context.telemetry.measurements.planExistsDuration = Math.round((Date.now() - startTime) / 1000);
             return;
         } else {
