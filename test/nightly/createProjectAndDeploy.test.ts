@@ -118,7 +118,7 @@ async function validateFunctionUrl(appName: string, functionName: string, routeP
     });
     const functionUrl: string = await vscode.env.clipboard.readText();
 
-    assert.ok(functionUrl.includes(routePrefix), 'Function url did not include routePrefix.');
+    assert.ok(functionUrl.includes(routePrefix), `Function url "${functionUrl}" did not include routePrefix "${routePrefix}".`);
 
     const client: ServiceClient = await createGenericClient();
     const response: HttpOperationResponse = await client.sendRequest({ method: 'POST', url: functionUrl, body: { name: "World" } });
