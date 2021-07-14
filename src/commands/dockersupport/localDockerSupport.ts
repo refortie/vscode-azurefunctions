@@ -45,14 +45,11 @@ export async function localDockerPrompt(context: IActionContext, devContainerFol
 }
 
 export async function downloadLocalDevFiles(devContainerFolderPathUri: vscode.Uri, devContainerName?: string): Promise<void> {
-    // download dev container
-    await requestUtils.downloadFile(
-        `https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/${devContainerName}/.devcontainer/devcontainer.json`,
-        vscode.Uri.joinPath(devContainerFolderPathUri, 'devcontainer.json').fsPath
-    );
-    // download docker file
-    await requestUtils.downloadFile(
-        `https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/${devContainerName}/.devcontainer/Dockerfile`,
-        vscode.Uri.joinPath(devContainerFolderPathUri, 'Dockerfile').fsPath
-    );
+    const downloadDevContainerJson = requestUtils.downloadFile(`https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/${devContainerName}/.devcontainer/devcontainer.json`, vscode.Uri.joinPath(devContainerFolderPathUri, 'devcontainer.json').fsPath);
+    const downloadDevContainerDockerfile = requestUtils.downloadFile(`https://raw.githubusercontent.com/microsoft/vscode-dev-containers/master/containers/${devContainerName}/.devcontainer/Dockerfile`, vscode.Uri.joinPath(devContainerFolderPathUri, 'Dockerfile').fsPath);
+
+    await Promise.all([
+        downloadDevContainerJson,
+        downloadDevContainerDockerfile
+    ]);
 }
