@@ -16,7 +16,7 @@ import { validateDockerInstalled } from "./validateDockerInstalled";
 export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<void> {
     if (node && devContainerName && node.site.reserved) {
         // asks if the user wants to use Docker for initializing the project locally
-        const useDocker: string = await prompt(context);
+        const useDocker = await prompt(context);
         if (useDocker === "yes") {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
             // external - check if Docker is installed, Remote Development extension AND Docker Extension
