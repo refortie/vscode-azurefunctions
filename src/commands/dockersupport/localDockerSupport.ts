@@ -26,7 +26,7 @@ export async function localDockerPrompt(context: IActionContext, devContainerFol
                 // if Docker is not downloaded - ask the user if they'd like to download Docker
                 if (await prompt2(context) === DOCKER_PROMPT_YES) {
                     // Check if Operating System is Windows
-                    if (process.platform.toLowerCase() == PLATFORM_WIN32) {
+                    if (process.platform.toLowerCase() === PLATFORM_WIN32) {
                         // Download Docker with an MSI package
                     } else {
                         // Not windows: display link to download docker externally from Docker documentation
