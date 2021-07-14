@@ -6,6 +6,9 @@ import { requestUtils } from "../../utils/requestUtils";
 import { prompt, prompt2 } from "./askDockerStep";
 import { validateDockerInstalled } from "./validateDockerInstalled";
 
+export const DOCKER_PROMPT_YES = "yes";
+export const PLATFORM_WIN32 = "win32";
+
 /**
  * Main Function Called to initialize the Docker flow with cloning Function App project locally from VS Code Extension
  * @param context - behavour of action
@@ -16,15 +19,14 @@ import { validateDockerInstalled } from "./validateDockerInstalled";
 export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<void> {
     if (node && devContainerName && node.site.reserved) {
         // asks if the user wants to use Docker for initializing the project locally
-        const useDocker = await prompt(context);
-        if (useDocker === "yes") {
+        if (await prompt(context) === DOCKER_PROMPT_YES) {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
             // external - check if Docker is installed, Remote Development extension AND Docker Extension
             if (!validateDockerInstalled()) {
                 // if Docker is not downloaded - ask the user if they'd like to download Docker
-                if (await prompt2(context) === "yes") {
+                if (await prompt2(context) === DOCKER_PROMPT_YES) {
                     // Check if Operating System is Windows
-                    if (process.platform == "win32") {
+                    if (process.platform.toLowerCase() == PLATFORM_WIN32) {
                         // Download Docker with an MSI package
                     } else {
                         // Not windows: display link to download docker externally from Docker documentation
