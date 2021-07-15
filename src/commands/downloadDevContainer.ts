@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { WorkspaceFolder } from "vscode";
 import { IActionContext } from "vscode-azureextensionui";
 import { getDevContainerName } from '../downloadAzureProject/setupProjectFolder';
@@ -29,6 +30,18 @@ export async function downloadDevContainer(context: IActionContext, node: SlotTr
         path.join(devContainerFolderPath, 'Dockerfile')
 
     );
+
+    const reloadVSCode: string = localize('reload', 'Reload Current Folder');
+    const newWindow: string = localize('reload', 'Open New Folder');
+    void vscode.window.showInformationMessage(localize('downloaded', 'Successfully downloaded dev container files'), reloadVSCode, newWindow).then(async result => {
+        if (result === reloadVSCode) {
+            await vscode.commands.executeCommand('workbench.action.reloadWindow');
+        } else if (result === newWindow) {
+            const projectFilePath: string = devContainerFolderPath.substring(0, devContainerFolderPath.length - 13);
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectFilePath), true); // open the project in VS Code
+
+        }
+    });
 }
 
 export async function getDevContainerFolder(context: IActionContext, message: string, workspacePath?: string): Promise<string> {
