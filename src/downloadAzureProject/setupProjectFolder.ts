@@ -112,7 +112,7 @@ function getProjectLanguageForLanguage(language: string): ProjectLanguage {
 
 // gets the devContainer name based on the language
 // here we define which functions will have docker support
-function getDevContainerName(language: string): string | undefined {
+export function getDevContainerName(language: string): string | undefined {
     switch (language) {
         case 'node':
             return 'azure-functions-node';
