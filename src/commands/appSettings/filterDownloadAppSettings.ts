@@ -8,10 +8,10 @@ import { DialogResponses, IActionContext } from "vscode-azureextensionui";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../localize";
 
-export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationName: string): Promise<void> {
+export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationSettingsToIgnore: { [key: string]: string }, destinationName: string): Promise<void> {
     let suppressPrompt: boolean = false;
     let overwriteSetting: boolean = false;
-    let suppressPromptOfSettingsToIgnore = false;
+    let showPromptForSettingsToIgnore = false;
     let overwriteSettingsToIgnore: boolean = false;
 
     const addedKeys: string[] = [];
@@ -21,32 +21,25 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
     const securitySettingsIgnored: string[] = [];
     const listOfSettingsToIgnore: string[] = ["AzureWebJobsStorage", "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", "WEBSITE_CONTENTSHARE"];
 
+    const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
+    const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
+
+
     for (const key of Object.keys(sourceSettings)) {
         if (listOfSettingsToIgnore.includes(key)) {
-            if (!suppressPromptOfSettingsToIgnore) {
-                const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
-                const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
-                const message: string = localize('overwriteSetting', 'Setting "{0}" has been identified as unsafe. Download?', key);
+            if (!showPromptForSettingsToIgnore) {
+                const message: string = localize('overwriteSettingsToIgnore', 'Setting "{0}" has been identified as unsafe. Download?', key);
                 const result: vscode.MessageItem = await context.ui.showWarningMessage(message, { modal: true }, DialogResponses.yes, yesToAll, DialogResponses.no, noToAll);
-                if (result === DialogResponses.yes) {
-                    overwriteSettingsToIgnore = true;
-                } else if (result === yesToAll) {
-                    overwriteSettingsToIgnore = true;
-                    suppressPromptOfSettingsToIgnore = true;
-                } else if (result === DialogResponses.no) {
-                    overwriteSettingsToIgnore = false;
-                } else if (result === noToAll) {
-                    overwriteSettingsToIgnore = false;
-                    suppressPromptOfSettingsToIgnore = true;
-                }
-
-                if (overwriteSettingsToIgnore) {
-                    updatedKeys.push(key);
-                    destinationSettings[key] = sourceSettings[key];
-                } else {
-                    securitySettingsIgnored.push(key);
-                    destinationSettings[key] = "";
-                }
+                overwriteSettingsToIgnore = result === DialogResponses.yes || result === yesToAll;
+                showPromptForSettingsToIgnore = result === yesToAll || result === noToAll;
+            }
+            if (overwriteSettingsToIgnore) {
+                updatedKeys.push(key);
+                destinationSettings[key] = sourceSettings[key];
+            } else {
+                securitySettingsIgnored.push(key);
+                destinationSettings[key] = "_REDACTED_";
+                destinationSettingsToIgnore[key] = "";
             }
         }
         else {
@@ -55,25 +48,13 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
                 destinationSettings[key] = sourceSettings[key];
             } else if (destinationSettings[key] === sourceSettings[key]) {
                 matchingKeys.push(key);
-            } else if (sourceSettings[key]) { // ignore empty settings
+            } else if (sourceSettings[key]) {
                 if (!suppressPrompt) {
-                    const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
-                    const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
                     const message: string = localize('overwriteSetting', 'Setting "{0}" already exists in "{1}". Overwrite?', key, destinationName);
                     const result: vscode.MessageItem = await context.ui.showWarningMessage(message, { modal: true }, DialogResponses.yes, yesToAll, DialogResponses.no, noToAll);
-                    if (result === DialogResponses.yes) {
-                        overwriteSetting = true;
-                    } else if (result === yesToAll) {
-                        overwriteSetting = true;
-                        suppressPrompt = true;
-                    } else if (result === DialogResponses.no) {
-                        overwriteSetting = false;
-                    } else if (result === noToAll) {
-                        overwriteSetting = false;
-                        suppressPrompt = true;
-                    }
+                    overwriteSetting = result === DialogResponses.yes || result === yesToAll;
+                    suppressPrompt = result === yesToAll || result === noToAll;
                 }
-
                 if (overwriteSetting) {
                     updatedKeys.push(key);
                     destinationSettings[key] = sourceSettings[key];

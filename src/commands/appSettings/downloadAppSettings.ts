@@ -25,7 +25,7 @@ export async function downloadAppSettings(context: IActionContext, node?: AppSet
 
     const client: IAppSettingsClient = node.client;
     await node.runWithTemporaryDescription(context, localize('downloading', 'Downloading...'), async () => {
-        await downloadAppSettingsInternal(context, client); // Valen: definition below
+        await downloadAppSettingsInternal(context, client);
     });
 }
 
@@ -46,12 +46,14 @@ export async function downloadAppSettingsInternal(context: IActionContext, clien
         if (!localSettings.Values) {
             localSettings.Values = {};
         }
-
+        if (!localSettings.SettingsToIgnore) {
+            localSettings.SettingsToIgnore = {};
+        }
         const remoteSettings: WebSiteManagementModels.StringDictionary = await client.listApplicationSettings();
 
         ext.outputChannel.appendLog(localize('downloadingSettings', 'Downloading settings...'), { resourceName: client.fullName });
         if (remoteSettings.properties) {
-            await filterDownloadAppSettings(context, remoteSettings.properties, localSettings.Values, localSettingsFileName);
+            await filterDownloadAppSettings(context, remoteSettings.properties, localSettings.Values, localSettings.SettingsToIgnore, localSettingsFileName);
         }
 
         await fse.ensureFile(localSettingsPath);
