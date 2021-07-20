@@ -20,7 +20,6 @@ import { getNameFromId } from '../utils/azure';
 import { requestUtils } from '../utils/requestUtils';
 import { getRequiredQueryParameter } from './handleUri';
 
-// call this if starting from portal side
 export async function setupProjectFolder(uri: vscode.Uri, vsCodeFilePathUri: vscode.Uri, context: IActionContext): Promise<void> {
     const parsedQuery: querystring.ParsedUrlQuery = querystring.parse(uri.query);
     const resourceId: string = getRequiredQueryParameter(parsedQuery, 'resourceId');
