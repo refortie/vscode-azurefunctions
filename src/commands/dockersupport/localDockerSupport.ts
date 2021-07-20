@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { IActionContext } from "vscode-azureextensionui";
 import { localize } from '../../localize';
 import { SlotTreeItemBase } from "../../tree/SlotTreeItemBase";
+import { openUrl } from '../../utils/openUrl';
 import { requestUtils } from "../../utils/requestUtils";
-import { prompt, prompt2 } from "./askDockerStep";
+import { prompt } from "./askDockerStep";
 import { validateDockerInstalled } from "./validateDockerInstalled";
-
 export const DOCKER_PROMPT_YES = "yes";
 export const PLATFORM_WIN32 = "win32";
 
@@ -18,22 +18,24 @@ export const PLATFORM_WIN32 = "win32";
  */
 export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<void> {
     if (node && devContainerName && node.site.reserved) {
-        // asks if the user wants to use Docker for initializing the project locally
         if (await prompt(context) === DOCKER_PROMPT_YES) {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
-            // external - check if Docker is installed, Remote Development extension AND Docker Extension
             if (!validateDockerInstalled()) {
-                // if Docker is not downloaded - ask the user if they'd like to download Docker
-                if (await prompt2(context) === DOCKER_PROMPT_YES) {
-                    // Check if Operating System is Windows
-                    if (process.platform.toLowerCase() === PLATFORM_WIN32) {
-                        // Download Docker with an MSI package
-                    } else {
-                        // Not windows: display link to download docker externally from Docker documentation
-                        void vscode.window.showInformationMessage(localize('downloadDocker', 'Check the (Docker documentation)[https://docs.docker.com/get-docker/] to download Docker for your system'));
-                    }
+                if (process.platform.toLowerCase() === PLATFORM_WIN32) {
+                    // Download Docker with an MSI package
+                    const dockerMSI: string = localize('msi', 'Download Docker');
+                    await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Download for the best user experience.'), dockerMSI,).then(async result => {
+                        if (result === dockerMSI) {
+                            await openUrl('https://docs.docker.com/get-docker/');
+                        }
+                    });
                 } else {
-                    void vscode.window.showInformationMessage(localize('noDocker', 'Continuing without the use of Docker as user requested'));
+                    const dockerDocumentation: string = localize('documentation', 'Docker Documentation');
+                    await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Check the Docker Documentation to download Docker to your system.'), dockerDocumentation,).then(async result => {
+                        if (result === dockerDocumentation) {
+                            await openUrl('https://docs.docker.com/get-docker/');
+                        }
+                    });
                 }
             }
         } else {
