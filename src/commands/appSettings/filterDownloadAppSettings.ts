@@ -11,7 +11,6 @@ import { localize } from "../../localize";
 export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationSettingsToIgnore: string[], destinationName: string): Promise<void> {
     let suppressPrompt: boolean = false;
     let overwriteSetting: boolean = false;
-    let showPromptForSettingsToIgnore = false;
     let overwriteSettingsToIgnore: boolean = false;
 
     const addedKeys: string[] = [];
@@ -28,11 +27,11 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
 
     for (const key of Object.keys(sourceSettings)) {
         if (listOfSettingsToIgnore.includes(key)) {
-            if (!showPromptForSettingsToIgnore) {
-                const message: string = localize('overwriteSettingsToIgnore', 'Setting "{0}" has been identified as unsafe. Download?', key);
+            if (!suppressPrompt) {
+                const message: string = localize('overwriteSettingsToIgnore', 'Setting "{0}" contains secrets. Download?', key);
                 const result: vscode.MessageItem = await context.ui.showWarningMessage(message, { modal: true }, DialogResponses.yes, yesToAll, DialogResponses.no, noToAll);
                 overwriteSettingsToIgnore = result === DialogResponses.yes || result === yesToAll;
-                showPromptForSettingsToIgnore = result === yesToAll || result === noToAll;
+                suppressPrompt = result === yesToAll || result === noToAll;
             }
             if (overwriteSettingsToIgnore) {
                 updatedKeys.push(key);
