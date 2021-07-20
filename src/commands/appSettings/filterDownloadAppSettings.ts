@@ -8,7 +8,7 @@ import { DialogResponses, IActionContext } from "vscode-azureextensionui";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../localize";
 
-export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationSettingsToIgnore: { [key: string]: string }, destinationName: string): Promise<void> {
+export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationSettingsToIgnore: string[], destinationName: string): Promise<void> {
     let suppressPrompt: boolean = false;
     let overwriteSetting: boolean = false;
     let showPromptForSettingsToIgnore = false;
@@ -24,6 +24,7 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
     const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
     const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
 
+    destinationSettingsToIgnore.length = 0;
 
     for (const key of Object.keys(sourceSettings)) {
         if (listOfSettingsToIgnore.includes(key)) {
@@ -39,11 +40,11 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
             } else {
                 securitySettingsIgnored.push(key);
                 destinationSettings[key] = "_REDACTED_";
-                destinationSettingsToIgnore[key] = "";
+                destinationSettingsToIgnore.push(key);
             }
         }
         else {
-            if (destinationSettings[key] === undefined) {
+            if (destinationSettings[key] === undefined) { // Have an explicit check for undefined as empty settings should not pass the condition
                 addedKeys.push(key);
                 destinationSettings[key] = sourceSettings[key];
             } else if (destinationSettings[key] === sourceSettings[key]) {

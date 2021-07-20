@@ -47,7 +47,7 @@ export async function downloadAppSettingsInternal(context: IActionContext, clien
             localSettings.Values = {};
         }
         if (!localSettings.SettingsToIgnore) {
-            localSettings.SettingsToIgnore = {};
+            localSettings.SettingsToIgnore = [];
         }
         const remoteSettings: WebSiteManagementModels.StringDictionary = await client.listApplicationSettings();
 

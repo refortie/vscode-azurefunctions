@@ -8,7 +8,7 @@ import { DialogResponses } from "vscode-azureextensionui";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../localize";
 
-export async function filterUploadAppSettings(sourceSettings: { [key: string]: string }, ignoredSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationName: string): Promise<void> {
+export async function filterUploadAppSettings(sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, ignoredSettings: string[], destinationName: string): Promise<void> {
     let suppressPrompt: boolean = false;
     let overwriteSetting: boolean = false;
 
@@ -19,8 +19,8 @@ export async function filterUploadAppSettings(sourceSettings: { [key: string]: s
     const securitySettingsIgnored: string[] = [];
 
     for (const key of Object.keys(sourceSettings)) {
-        if (ignoredSettings[key]) {
-            if (destinationSettings[key] === undefined) {
+        if (!ignoredSettings.includes(key)) {
+            if (destinationSettings[key] === undefined) { // Have an explicit check for undefined as empty settings should not pass the condition
                 addedKeys.push(key);
                 destinationSettings[key] = sourceSettings[key];
             } else if (destinationSettings[key] === sourceSettings[key]) {
