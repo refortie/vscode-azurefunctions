@@ -25,6 +25,25 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
 
     destinationSettingsToIgnore.length = 0;
 
+    const options = [
+        {
+            label: 'AzureWebJobsStorage',
+            description: '',
+            command: 'red.interpret'
+        },
+        {
+            label: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING',
+            description: '',
+            command: 'red.interpretGUI'
+        },
+        {
+            label: 'WEBSITE_CONTENTSHARE',
+            description: '',
+            command: 'reds.compileGUI'
+        }
+    ];
+    const test: vscode.MessageItem = await context.ui.showQuickPick(options, { canPickMany: true });
+
     for (const key of Object.keys(sourceSettings)) {
         if (listOfSettingsToIgnore.includes(key)) {
             if (!suppressPrompt) {
