@@ -8,7 +8,6 @@ import { prompt } from "./askDockerStep";
 import { validateDockerInstalled } from './validateDockerInstalled';
 
 export const DOCKER_PROMPT_YES = "yes";
-export const PLATFORM_WIN32 = "win32";
 
 /**
  * Main Function Called to initialize the Docker flow with cloning Function App project locally from VS Code Extension
@@ -22,22 +21,12 @@ export async function localDockerPrompt(context: IActionContext, devContainerFol
         if (await prompt(context) === DOCKER_PROMPT_YES) {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
             if (!validateDockerInstalled()) {
-                if (process.platform.toLowerCase() === PLATFORM_WIN32) {
-                    // Download Docker with an MSI package
-                    const dockerMSI: string = localize('msi', 'Download Docker');
-                    await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Download for the best user experience.'), dockerMSI,).then(async result => {
-                        if (result === dockerMSI) {
-                            await openUrl('https://docs.docker.com/get-docker/');
-                        }
-                    });
-                } else {
-                    const dockerDocumentation: string = localize('documentation', 'Docker Documentation');
-                    await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Check the Docker Documentation to download Docker to your system.'), dockerDocumentation,).then(async result => {
-                        if (result === dockerDocumentation) {
-                            await openUrl('https://docs.docker.com/get-docker/');
-                        }
-                    });
-                }
+                const dockerDocumentation: string = localize('documentation', 'Docker Documentation');
+                await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Check the Docker Documentation to download Docker to your system.'), dockerDocumentation,).then(async result => {
+                    if (result === dockerDocumentation) {
+                        await openUrl('https://docs.docker.com/get-docker/');
+                    }
+                });
             }
         } else {
             void vscode.window.showInformationMessage(localize('noDocker', 'Continuing without the use of Docker as user requested'));
