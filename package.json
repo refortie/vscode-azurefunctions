@@ -80,6 +80,8 @@
         "onCommand:azureFunctions.setAzureWebJobsStorage",
         "onCommand:azureFunctions.reportIssue",
         "onCommand:azureFunctions.cloneLocally",
+        "onCommand:azureFunctions.runInContainer",
+        "onCommand:azureFunctions.updateContainer",
         "workspaceContains:**/host.json",
         "onView:azFuncTree",
         "onDebugInitialConfigurations",
@@ -362,6 +364,16 @@
             {
                 "command": "azureFunctions.reportIssue",
                 "title": "%azureFunctions.reportIssue%",
+                "category": "Azure Functions"
+            },
+            {
+                "command": "azureFunctions.runInContainer",
+                "title": "%azureFunctions.runInContainer%",
+                "category": "Azure Functions"
+            },
+            {
+                "command": "azureFunctions.updateContainer",
+                "title": "%azureFunctions.updateContainer%",
                 "category": "Azure Functions"
             }
         ],
@@ -679,6 +691,16 @@
                     "command": "azureFunctions.deploy",
                     "when": "explorerResourceIsFolder == true",
                     "group": "zzz_azuretools_deploy@2"
+                },
+                {
+                    "command": "azureFunctions.runInContainer",
+                    "when": "explorerResourceIsFolder == true",
+                    "group": "zzz_azuretools_deploy@3"
+                },
+                {
+                    "command": "azureFunctions.updateContainer",
+                    "when": "explorerResourceIsFolder == true",
+                    "group": "zzz_azuretools_deploy@4"
                 },
                 {
                     "command": "azureFunctions.appSettings.decrypt",
