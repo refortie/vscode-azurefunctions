@@ -66,11 +66,17 @@ export async function setupProjectFolderParsed(resourceId: string, language: str
             const devContainerFolderPathUri: vscode.Uri = vscode.Uri.joinPath(projectFilePathUri, '.devcontainer');
 
             await extract(downloadFilePath, { dir: projectFilePath });
-            await localDockerPrompt(context, devContainerFolderPathUri, node, devContainerName);
+            const openInContainer: boolean = await localDockerPrompt(context, devContainerFolderPathUri, node, devContainerName);
             await initProjectForVSCode(context, projectFilePath, getProjectLanguageForLanguage(language));
 
             void vscode.window.showInformationMessage(localize('restartingVsCodeInfoMessage', 'Restarting VS Code with your function app project'));
-            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectFilePath), true);
+            // Setting a delay so that users are able to see the message before new window opens.
+            const milliseconds = 1250;
+            if (openInContainer) {
+                setTimeout(vscode.commands.executeCommand, milliseconds, 'remote-containers.openFolder', vscode.Uri.file(projectFilePath), true);
+            } else {
+                setTimeout(vscode.commands.executeCommand, milliseconds, 'vscode.openFolder', vscode.Uri.file(projectFilePath), true)
+            }
         });
     } catch (err) {
         throw new Error(localize('failedLocalProjSetupErrorMessage', 'Failed to set up your local project: "{0}".', parseError(err).message));
