@@ -16,35 +16,22 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
     const matchingKeys: string[] = [];
 
     const listOfSettingsToIgnore: string[] = ["AzureWebJobsStorage", "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", "WEBSITE_CONTENTSHARE"];
-    const userChosenSettings: string[] = [];
     const options: vscode.QuickPickItem[] = [];
     destinationSettingsToIgnore.length = 0;
 
     for (const element of Object.keys(sourceSettings)) {
-        if (listOfSettingsToIgnore.includes(element)) {
-            options.push({
-                label: element
-            });
-        }
-        else {
-            options.push({
-                label: element,
-                picked: true
-            });
-        }
+        options.push({
+            label: element,
+            picked: !listOfSettingsToIgnore.includes(element)
+        });
     }
 
     const result = await context.ui.showQuickPick(options, { placeHolder: 'Please select the app settings you would like to download:', canPickMany: true });
-
-    while (result.length != 0) {
-        const temp = result.pop();
-        if (temp === undefined) break;
-        userChosenSettings.push(temp?.label);
-    }
+    const userChosenSettings: string[] = result ? result.map(item => item.label) : [];
 
     for (const key of Object.keys(sourceSettings)) {
         if (userChosenSettings.includes(key)) {
-            if (destinationSettings[key] === undefined) { // when app setting does not exist locally
+            if (destinationSettings[key] === undefined) { // Explicit check for undefined as destinationSettings[key] could be empty but valid
                 addedKeys.push(key);
                 destinationSettings[key] = sourceSettings[key];
             } else if (destinationSettings[key] === sourceSettings[key]) {
