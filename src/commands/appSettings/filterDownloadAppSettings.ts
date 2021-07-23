@@ -9,7 +9,6 @@ import { ext } from "../../extensionVariables";
 import { localize } from "../../localize";
 
 export async function filterDownloadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, destinationSettingsToIgnore: string[], destinationName: string): Promise<void> {
-
     const addedKeys: string[] = [];
     const updatedKeys: string[] = [];
     const userIgnoredKeys: string[] = [];
@@ -31,7 +30,8 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
 
     for (const key of Object.keys(sourceSettings)) {
         if (userChosenSettings.includes(key)) {
-            if (destinationSettings[key] === undefined) { // Explicit check for undefined as destinationSettings[key] could be empty but valid
+            // Explicit check for undefined as destinationSettings[key] could be empty but valid
+            if (destinationSettings[key] === undefined) {
                 addedKeys.push(key);
                 destinationSettings[key] = sourceSettings[key];
             } else if (destinationSettings[key] === sourceSettings[key]) {
