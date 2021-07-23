@@ -70,12 +70,12 @@ export async function setupProjectFolderParsed(resourceId: string, language: str
             await initProjectForVSCode(context, projectFilePath, getProjectLanguageForLanguage(language));
 
             void vscode.window.showInformationMessage(localize('restartingVsCodeInfoMessage', 'Restarting VS Code with your function app project'));
-            // Setting a delay so that users are able to see the message before new window opens.
-            const milliseconds = 1250;
+            // Setting a delay so that users are able to see the message before new window opens
+            const delayMilliseconds = 1500;
             if (openInContainer) {
-                setTimeout(vscode.commands.executeCommand, milliseconds, 'remote-containers.openFolder', vscode.Uri.file(projectFilePath), true);
+                setTimeout(vscode.commands.executeCommand, delayMilliseconds, 'remote-containers.openFolder', vscode.Uri.file(projectFilePath), true);
             } else {
-                setTimeout(vscode.commands.executeCommand, milliseconds, 'vscode.openFolder', vscode.Uri.file(projectFilePath), true)
+                setTimeout(vscode.commands.executeCommand, delayMilliseconds, 'vscode.openFolder', vscode.Uri.file(projectFilePath), true)
             }
         });
     } catch (err) {
