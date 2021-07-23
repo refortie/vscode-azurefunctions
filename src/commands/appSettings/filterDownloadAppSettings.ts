@@ -26,7 +26,7 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
         });
     }
 
-    const result = await context.ui.showQuickPick(options, { placeHolder: 'Please select the app settings you would like to download:', canPickMany: true });
+    const result = await context.ui.showQuickPick(options, { placeHolder: 'Select the app settings you would like to download:', canPickMany: true });
     const userChosenSettings: string[] = result ? result.map(item => item.label) : [];
 
     for (const key of Object.keys(sourceSettings)) {
