@@ -1,8 +1,3 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
 import * as vscode from 'vscode';
 import { IActionContext } from "vscode-azureextensionui";
 import { localize } from '../../localize';
@@ -21,7 +16,7 @@ export const DOCKER_PROMPT_YES = "yes";
  * @param devContainerName - string name of dev container
  * @param node - Function App Project
  */
-export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<void> {
+export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<boolean> {
     if (node && devContainerName && node.site.reserved) {
         if (await prompt(context) === DOCKER_PROMPT_YES) {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
@@ -32,12 +27,16 @@ export async function localDockerPrompt(context: IActionContext, devContainerFol
                         await openUrl('https://docs.docker.com/get-docker/');
                     }
                 });
+                return false;
             }
+            return true;
         } else {
             void vscode.window.showInformationMessage(localize('noDocker', 'Continuing without the use of Docker as user requested'));
+            return false;
         }
     } else {
         void vscode.window.showInformationMessage(localize('unableDocker', 'Initializing project without the use of Docker'));
+        return false;
     }
 }
 
