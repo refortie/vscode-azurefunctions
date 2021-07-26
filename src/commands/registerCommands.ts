@@ -36,6 +36,8 @@ import { disconnectRepo } from './deployments/disconnectRepo';
 import { redeployDeployment } from './deployments/redeployDeployment';
 import { viewCommitInGitHub } from './deployments/viewCommitInGitHub';
 import { viewDeploymentLogs } from './deployments/viewDeploymentLogs';
+import { runInContainer } from './dockersupport/runInContainer';
+import { updateContainer } from './dockersupport/updateContainer';
 import { editAppSetting } from './editAppSetting';
 import { executeFunction } from './executeFunction';
 import { initProjectForVSCode } from './initProjectForVSCode/initProjectForVSCode';
@@ -92,7 +94,7 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.openInPortal', openInPortal);
     registerCommand('azureFunctions.pickProcess', pickFuncProcess);
     registerSiteCommand('azureFunctions.redeploy', redeployDeployment);
-    registerCommand('azureFunctions.refresh', async (context: IActionContext, node?: AzureTreeItem) => await ext.tree.refresh(context, node)); // menu item 5
+    registerCommand('azureFunctions.refresh', async (context: IActionContext, node?: AzureTreeItem) => await ext.tree.refresh(context, node));
     registerCommand('azureFunctions.restartFunctionApp', restartFunctionApp);
     registerCommand('azureFunctions.selectSubscriptions', () => commands.executeCommand('azure-account.selectSubscriptions'));
     registerCommand('azureFunctions.setAzureWebJobsStorage', setAzureWebJobsStorage);
@@ -110,5 +112,7 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.viewProperties', viewProperties);
     registerCommand('azureFunctions.showOutputChannel', () => { ext.outputChannel.show(); });
     registerCommand('azureFunctions.cloneLocally', cloneLocally);
+    registerCommand('azureFunctions.runInContainer', runInContainer);
+    registerCommand('azureFunctions.updateContainer', updateContainer);
 
 }
