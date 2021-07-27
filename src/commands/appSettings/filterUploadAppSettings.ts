@@ -4,49 +4,52 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { DialogResponses } from "vscode-azureextensionui";
+import { IActionContext } from "vscode-azureextensionui";
 import { ext } from "../../extensionVariables";
 import { localize } from "../../localize";
 
-export async function filterUploadAppSettings(sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, ignoredSettings: string[], destinationName: string): Promise<void> {
-    let suppressPrompt: boolean = false;
-    let overwriteSetting: boolean = false;
-
+export async function filterUploadAppSettings(context: IActionContext, sourceSettings: { [key: string]: string }, destinationSettings: { [key: string]: string }, ignoredSettings: string[], destinationName: string): Promise<void> {
     const addedKeys: string[] = [];
     const updatedKeys: string[] = [];
     const userIgnoredKeys: string[] = [];
     const matchingKeys: string[] = [];
     const securitySettingsIgnored: string[] = [];
 
-    for (const key of Object.keys(sourceSettings)) {
-        if (!ignoredSettings.includes(key)) {
-            if (destinationSettings[key] === undefined) { // Have an explicit check for undefined as empty settings should not pass the condition
-                addedKeys.push(key);
-                destinationSettings[key] = sourceSettings[key];
-            } else if (destinationSettings[key] === sourceSettings[key]) {
-                matchingKeys.push(key);
-            } else if (sourceSettings[key]) { // ignore empty settings
-                if (!suppressPrompt) {
-                    const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
-                    const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
-                    const message: string = localize('overwriteSetting', 'Setting "{0}" already exists in "{1}". Overwrite?', key, destinationName);
-                    const result: vscode.MessageItem = await ext.ui.showWarningMessage(message, { modal: true }, DialogResponses.yes, yesToAll, DialogResponses.no, noToAll);
-                    overwriteSetting = result === DialogResponses.yes || result === yesToAll;
-                    suppressPrompt = result === yesToAll || result === noToAll;
-                }
-
-                if (overwriteSetting) {
-                    updatedKeys.push(key);
-                    destinationSettings[key] = sourceSettings[key];
-                } else {
-                    userIgnoredKeys.push(key);
-                }
-            }
+    const options: vscode.QuickPickItem[] = [];
+    for (const element of Object.keys(sourceSettings)) {
+        if (!ignoredSettings.includes(element) && (destinationSettings[element] != sourceSettings[element] || destinationSettings[element] === undefined)) {
+            options.push({
+                label: element
+            });
         }
-        else {
+    }
+
+    let userChosenSettings: string[] = [];
+    if (options.length != 0) {
+        const result = await context.ui.showQuickPick(options, { placeHolder: 'Select the modified app settings you would like to upload:', canPickMany: true });
+        userChosenSettings = result ? result.map(item => item.label) : [];
+    }
+
+    for (const key of Object.keys(sourceSettings)) {
+        if (destinationSettings[key] === sourceSettings[key]) {
+            matchingKeys.push(key);
+        }
+        else if (userChosenSettings.includes(key)) {
+            // Explicit check for undefined as destinationSettings[key] could be empty but valid
+            if (destinationSettings[key] === undefined) {
+                addedKeys.push(key);
+            }
+            else {
+                updatedKeys.push(key);
+            }
+            destinationSettings[key] = sourceSettings[key];
+        }
+        else if (ignoredSettings.includes(key)) {
             securitySettingsIgnored.push(key);
         }
-
+        else {
+            userIgnoredKeys.push(key);
+        }
     }
 
     if (addedKeys.length > 0) {
