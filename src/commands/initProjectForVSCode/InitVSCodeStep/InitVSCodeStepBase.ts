@@ -5,7 +5,7 @@
 
 import * as fse from 'fs-extra';
 import * as path from 'path';
-import { DebugConfiguration, MessageItem, TaskDefinition, WorkspaceFolder } from 'vscode';
+import { DebugConfiguration, TaskDefinition, WorkspaceFolder } from 'vscode';
 import { AzureWizardExecuteStep, IActionContext } from 'vscode-azureextensionui';
 import { deploySubpathSetting, func, funcVersionSetting, gitignoreFileName, launchFileName, preDeployTaskSetting, ProjectLanguage, projectLanguageSetting, projectSubpathSetting, settingsFileName, tasksFileName } from '../../../constants';
 import { ext } from '../../../extensionVariables';
@@ -102,64 +102,47 @@ export abstract class InitVSCodeStepBase extends AzureWizardExecuteStep<IProject
             } else if (currentVersion !== tasksVersion) {
                 throw versionMismatchError;
             }
-            await updateTasks(context.workspaceFolder, await this.insertNewTasks(context, getTasks(context.workspaceFolder), newTasks));
+            await updateTasks(context.workspaceFolder, this.insertNewTasks(getTasks(context.workspaceFolder), newTasks));
         } else { // otherwise manually edit json
             const tasksJsonPath: string = path.join(vscodePath, tasksFileName);
             await confirmEditJsonFile(
                 context,
                 tasksJsonPath,
-                async (data: ITasksJson): Promise<ITasksJson> => {
+                (data: ITasksJson): ITasksJson => {
                     if (!data.version) {
                         data.version = tasksVersion;
                     } else if (data.version !== tasksVersion) {
                         throw versionMismatchError;
                     }
-                    data.tasks = await this.insertNewTasks(context, data.tasks, newTasks);
+                    data.tasks = this.insertNewTasks(data.tasks, newTasks);
                     return data;
                 }
             );
         }
     }
 
-    private async insertNewTasks(context: IActionContext, existingTasks: ITask[] | undefined, newTasks: ITask[]): Promise<ITask[]> {
+    private insertNewTasks(existingTasks: ITask[] | undefined, newTasks: ITask[]): ITask[] {
         existingTasks = existingTasks || [];
-
-        // remove new tasks that have an identical existing task
-        newTasks = newTasks.filter(t1 => {
-            const t1String = JSON.stringify(t1);
-            return !existingTasks?.some(t2 => t1String === JSON.stringify(t2));
-        });
-
-        const nonMatchingTasks: ITask[] = [];
-        const matchingTaskLabels: string[] = [];
-        for (const existingTask of existingTasks) {
-            const existingLabel = this.getTaskLabel(existingTask);
-            if (existingLabel && newTasks.some(newTask => existingLabel === this.getTaskLabel(newTask))) {
-                matchingTaskLabels.push(existingLabel);
+        // Remove tasks that match the ones we're about to add
+        existingTasks = existingTasks.filter(t1 => !newTasks.find(t2 => {
+            if (t1.type === t2.type) {
+                switch (t1.type) {
+                    case func:
+                        return t1.command === t2.command;
+                    case 'shell':
+                    case 'process':
+                        return t1.label === t2.label && t1.identifier === t2.identifier;
+                    default:
+                        // Not worth throwing an error for unrecognized task type
+                        // Worst case the user has an extra task in their tasks.json
+                        return false;
+                }
             } else {
-                nonMatchingTasks.push(existingTask);
+                return false;
             }
-        }
-
-        if (matchingTaskLabels.length > 0) {
-            const message = localize('confirmOverwriteTasks', 'This will overwrite the following tasks in your tasks.json: "{0}"', matchingTaskLabels.join('", "'));
-            const overwrite: MessageItem = { title: localize('overwrite', 'Overwrite') };
-            await context.ui.showWarningMessage(message, { modal: true, stepName: 'confirmOverwriteTasks' }, overwrite)
-        }
-
-        return nonMatchingTasks.concat(...newTasks);
-    }
-
-    private getTaskLabel(task: ITask): string | undefined {
-        switch (task.type) {
-            case func:
-                return `${task.type}: ${task.command}`;
-            case 'shell':
-            case 'process':
-                return task.label;
-            default:
-                return undefined;
-        }
+        }));
+        existingTasks.push(...newTasks);
+        return existingTasks;
     }
 
     private async writeLaunchJson(context: IActionContext, folder: WorkspaceFolder | undefined, vscodePath: string, version: FuncVersion): Promise<void> {

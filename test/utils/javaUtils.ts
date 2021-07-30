@@ -5,9 +5,10 @@
 
 import * as fse from 'fs-extra';
 import * as path from 'path';
-import { runWithTestActionContext, TestInput } from 'vscode-azureextensiondev';
-import { createNewProjectInternal, ProjectLanguage } from '../../extension.bundle';
-import { cleanTestWorkspace } from '../global.test';
+import * as vscode from 'vscode';
+import { TestInput } from 'vscode-azureextensiondev';
+import { ProjectLanguage } from '../../extension.bundle';
+import { cleanTestWorkspace, testUserInput } from '../global.test';
 
 export namespace javaUtils {
     export async function addJavaProjectToWorkspace(testWorkspacePath: string): Promise<void> {
@@ -15,10 +16,8 @@ export namespace javaUtils {
         if (!await fse.pathExists(path.join(testWorkspacePath, 'pom.xml'))) { // no need if the project is already created
             const inputs: (string | TestInput | RegExp)[] = [testWorkspacePath, ProjectLanguage.Java, TestInput.UseDefaultValue, TestInput.UseDefaultValue, TestInput.UseDefaultValue, TestInput.UseDefaultValue, TestInput.UseDefaultValue, 'javaAppName'];
             await cleanTestWorkspace();
-            await runWithTestActionContext('createNewProject', async context => {
-                await context.ui.runWithInputs(inputs, async () => {
-                    await createNewProjectInternal(context, {});
-                });
+            await testUserInput.runWithInputs(inputs, async () => {
+                await vscode.commands.executeCommand('azureFunctions.createNewProject');
             });
         }
     }

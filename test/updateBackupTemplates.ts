@@ -3,9 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { createTestActionContext } from 'vscode-azureextensiondev';
 import { CentralTemplateProvider, FuncVersion, ProjectLanguage, supportedLanguages as resourceLanguages, TemplateProviderBase } from '../extension.bundle';
-import { getTestWorkspaceFolder, updateBackupTemplates } from './global.test';
+import { createTestActionContext, getTestWorkspaceFolder, updateBackupTemplates } from './global.test';
 import { javaUtils } from './utils/javaUtils';
 
 type WorkerRuntime = { language: ProjectLanguage; projectTemplateKey?: string, versions: FuncVersion[] }
@@ -37,18 +36,13 @@ suite('Backup templates', () => {
 
         for (const worker of workers) {
             for (const version of Object.values(FuncVersion)) {
-                if (version === FuncVersion.v4) {
-                    // v4 doesn't have templates yet
-                    continue;
-                }
-
                 if (!worker.versions?.includes(version)) {
                     continue;
                 }
 
                 const providers: TemplateProviderBase[] = CentralTemplateProvider.getProviders(testWorkspacePath, worker.language, version, worker.projectTemplateKey);
 
-                const context = await createTestActionContext();
+                const context = createTestActionContext();
                 for (const provider of providers) {
                     const templateVersion: string = await provider.getLatestTemplateVersion(context);
 

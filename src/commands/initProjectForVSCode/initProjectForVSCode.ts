@@ -27,7 +27,7 @@ export async function initProjectForVSCode(context: IActionContext, fsPath?: str
             const placeHolder: string = localize('selectFunctionAppFolderNew', 'Select the folder to initialize for use with VS Code');
             workspaceFolder = await window.showWorkspaceFolderPick({ placeHolder });
             if (!workspaceFolder) {
-                throw new UserCancelledError('selectFunctionAppFolderNew');
+                throw new UserCancelledError();
             } else {
                 workspacePath = workspaceFolder.uri.fsPath;
             }
@@ -37,11 +37,12 @@ export async function initProjectForVSCode(context: IActionContext, fsPath?: str
         workspacePath = workspaceFolder ? workspaceFolder.uri.fsPath : fsPath;
     }
 
-    const projectPath: string | undefined = await verifyAndPromptToCreateProject(context, workspaceFolder || workspacePath);
+    const projectPath: string | undefined = await verifyAndPromptToCreateProject(context, workspacePath);
     if (!projectPath) {
         return;
     }
 
+    // get settings, language, version for the project
     language = language || getGlobalSetting(projectLanguageSetting) || await detectProjectLanguage(context, projectPath);
     const version: FuncVersion = getGlobalSetting(funcVersionSetting) || await tryGetLocalFuncVersion() || latestGAVersion;
     const projectTemplateKey: string | undefined = getGlobalSetting(projectTemplateKeySetting);

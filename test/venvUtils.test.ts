@@ -6,12 +6,13 @@
 import * as assert from 'assert';
 import * as fse from 'fs-extra';
 import * as path from 'path';
-import { cpUtils, delay, ext, getGlobalSetting, getRandomHexString, pythonVenvSetting, updateGlobalSetting, venvUtils } from '../extension.bundle';
+import { cpUtils, ext, getGlobalSetting, pythonVenvSetting, updateGlobalSetting, venvUtils } from '../extension.bundle';
 import { longRunningTestsEnabled, testFolderPath } from './global.test';
 import { runWithSetting } from './runWithSetting';
 
 suite('venvUtils', () => {
     const command: string = 'do a thing';
+    const windowsTerminalSetting: string = 'terminal.integrated.shell.windows';
     const venvName: string = '.venv';
     const testFolder: string = path.join(testFolderPath, 'venvUtils');
     let oldVenvValue: string | undefined;
@@ -64,7 +65,7 @@ suite('venvUtils', () => {
         if (process.platform !== 'win32') {
             this.skip();
         }
-        await runWithWindowsTerminal('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', () => {
+        await runWithSetting(windowsTerminalSetting, 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', async () => {
             assert.equal(venvUtils.convertToVenvCommand(command, testFolder), '.venv\\Scripts\\activate ; do a thing');
             assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'win32'), '.venv\\Scripts\\python -m do a thing');
         });
@@ -74,7 +75,7 @@ suite('venvUtils', () => {
         if (process.platform !== 'win32') {
             this.skip();
         }
-        await runWithWindowsTerminal('C:\\Program Files\\PowerShell\\7\\pwsh.exe', () => {
+        await runWithSetting(windowsTerminalSetting, 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\pwsh.exe', async () => {
             assert.equal(venvUtils.convertToVenvCommand(command, testFolder), '.venv\\Scripts\\activate ; do a thing');
             assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'win32'), '.venv\\Scripts\\python -m do a thing');
         });
@@ -84,7 +85,7 @@ suite('venvUtils', () => {
         if (process.platform !== 'win32') {
             this.skip();
         }
-        await runWithWindowsTerminal('C:\\Windows\\System32\\cmd.exe', () => {
+        await runWithSetting(windowsTerminalSetting, 'C:\\Windows\\System32\\cmd.exe', async () => {
             assert.equal(venvUtils.convertToVenvCommand(command, testFolder), '.venv\\Scripts\\activate && do a thing');
             assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'win32'), '.venv\\Scripts\\python -m do a thing');
         });
@@ -94,8 +95,17 @@ suite('venvUtils', () => {
         if (process.platform !== 'win32') {
             this.skip();
         }
+        await runWithSetting(windowsTerminalSetting, 'C:\\Program Files\\Git\\bin\\bash.exe', async () => {
+            assert.equal(venvUtils.convertToVenvCommand(command, testFolder), '. .venv/Scripts/activate && do a thing');
+            assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'win32'), '.venv/Scripts/python -m do a thing');
+        });
+    });
 
-        await runWithWindowsTerminal('C:\\Program Files\\Git\\bin\\bash.exe', () => {
+    test('convertToVenvCommand Windows bash', async function (this: Mocha.Context): Promise<void> {
+        if (process.platform !== 'win32') {
+            this.skip();
+        }
+        await runWithSetting(windowsTerminalSetting, 'C:\\Windows\\System32\\bash.exe', async () => {
             assert.equal(venvUtils.convertToVenvCommand(command, testFolder), '. .venv/Scripts/activate && do a thing');
             assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'win32'), '.venv/Scripts/python -m do a thing');
         });
@@ -117,20 +127,3 @@ suite('venvUtils', () => {
         assert.equal(venvUtils.convertToVenvPythonCommand(command, venvName, 'linux'), '.venv/bin/python -m do a thing');
     });
 });
-
-async function runWithWindowsTerminal(terminalPath: string, callback: () => void): Promise<void> {
-    if (!(await fse.pathExists(terminalPath))) {
-        throw new Error(`Terminal path cannot be set because it does not exist: ${terminalPath}`)
-    }
-
-    const profileName = getRandomHexString();
-    const terminalProfiles = { [profileName]: { path: terminalPath } };
-    await runWithSetting('terminal.integrated.profiles.windows', terminalProfiles, async () => {
-        await runWithSetting('terminal.integrated.defaultProfile.windows', profileName, async () => {
-            // https://github.com/microsoft/vscode/issues/121760
-            // "it takes up to 2 seconds after changing a profile to apply the changes by design"
-            await delay(5 * 1000);
-            callback();
-        });
-    });
-}

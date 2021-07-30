@@ -86,7 +86,8 @@ export class CentralTemplateProvider implements Disposable {
             await provider.clearCachedTemplates(context);
             provider.projKeyMayHaveChanged();
         }
-        const cachedProviders = this.tryGetCachedProviders(projectPath, language, version);
+        const key: string = this.getProvidersKey(projectPath, language, version);
+        const cachedProviders = this._providersMap.get(key);
         if (cachedProviders) {
             delete cachedProviders.templatesTask;
         }
@@ -107,45 +108,31 @@ export class CentralTemplateProvider implements Disposable {
         }
     }
 
-    public async getProjectTemplateKey(context: IActionContext, projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion, projectTemplateKey: string | undefined): Promise<string> {
-        const cachedProviders = await this.getCachedProviders(context, projectPath, language, version, projectTemplateKey);
+    public async getProjectTemplateKey(projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion, projectTemplateKey: string | undefined): Promise<string> {
+        const cachedProviders = await this.getCachedProviders(projectPath, language, version, projectTemplateKey);
         // .NET is the only language that supports project template keys and they only have one provider
         // We probably need to do something better here once multi-provider languages support project template keys
         const provider = nonNullValue(cachedProviders.providers[0], 'firstProvider');
-        return await provider.getProjKey(context);
+        return await provider.getProjKey();
     }
 
-    private getCachedProvidersKey(language: ProjectLanguage, version: FuncVersion): string {
-        return language + version;
-    }
-
-    private tryGetCachedProviders(projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion): CachedProviders | undefined {
-        const key: string = this.getCachedProvidersKey(language, version);
-        if (this._providersMap.has(key)) {
-            return this._providersMap.get(key);
-        } else if (projectPath) {
-            return this._providersMap.get(key + projectPath);
-        } else {
-            return undefined;
-        }
-    }
-
-    private setCachedProviders(projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion, cachedProviders: CachedProviders): void {
-        let key: string = this.getCachedProvidersKey(language, version);
-        if (cachedProviders.providers.some(p => p.supportsProjKey())) {
+    private getProvidersKey(projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion): string {
+        let key: string = language + version;
+        if (projectPath) {
             key += projectPath;
         }
-        this._providersMap.set(key, cachedProviders);
+        return key;
     }
 
-    private async getCachedProviders(context: IActionContext, projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion, projectTemplateKey: string | undefined): Promise<CachedProviders> {
-        let cachedProviders = this.tryGetCachedProviders(projectPath, language, version);
+    private async getCachedProviders(projectPath: string | undefined, language: ProjectLanguage, version: FuncVersion, projectTemplateKey: string | undefined): Promise<CachedProviders> {
+        const key: string = this.getProvidersKey(projectPath, language, version);
+        let cachedProviders = this._providersMap.get(key);
         if (!cachedProviders) {
             cachedProviders = { providers: CentralTemplateProvider.getProviders(projectPath, language, version, projectTemplateKey) };
-            this.setCachedProviders(projectPath, language, version, cachedProviders);
+            this._providersMap.set(key, cachedProviders);
         } else {
             await Promise.all(cachedProviders.providers.map(async p => {
-                if (await p.updateProjKeyIfChanged(context, projectTemplateKey)) {
+                if (await p.updateProjKeyIfChanged(projectTemplateKey)) {
                     delete cachedProviders?.templatesTask;
                 }
             }));
@@ -160,7 +147,7 @@ export class CentralTemplateProvider implements Disposable {
         context.telemetry.properties.projectRuntime = version;
         context.telemetry.properties.projectLanguage = language;
 
-        const cachedProviders = await this.getCachedProviders(context, projectPath, language, version, projectTemplateKey);
+        const cachedProviders = await this.getCachedProviders(projectPath, language, version, projectTemplateKey);
         let templatesTask: Promise<ITemplates> | undefined = cachedProviders.templatesTask;
         if (templatesTask) {
             return await templatesTask;
@@ -258,7 +245,7 @@ export class CentralTemplateProvider implements Disposable {
         if (!this.templateSource) {
             try {
                 context.telemetry.properties.templateSource = 'cache';
-                if (await provider.doesCachedProjKeyMatch(context)) {
+                if (await provider.doesCachedProjKeyMatch()) {
                     return await provider.getCachedTemplates(context);
                 } else {
                     return undefined;

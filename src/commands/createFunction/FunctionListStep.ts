@@ -201,15 +201,7 @@ export class FunctionListStep extends AzureWizardPromptStep<IFunctionWizardConte
             });
         }
 
-        if (templates.length === 0) {
-            picks.push({
-                label: localize('noTemplates', '$(warning) No templates found'),
-                suppressPersistence: true,
-                data: <IFunctionTemplate | TemplatePromptResult><unknown>undefined,
-                onPicked: () => { /* do nothing */ }
-            })
-        } else if (language === ProjectLanguage.CSharp || language === ProjectLanguage.Java || language === ProjectLanguage.Python || language === ProjectLanguage.TypeScript) {
-            // NOTE: Only show this if we actually found other templates
+        if (language === ProjectLanguage.CSharp || language === ProjectLanguage.Java || language === ProjectLanguage.Python || language === ProjectLanguage.TypeScript) {
             picks.push({
                 label: localize('openAPI', 'HTTP trigger(s) from OpenAPI V2/V3 Specification (Preview)'),
                 data: 'openAPI',

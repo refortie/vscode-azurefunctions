@@ -18,7 +18,8 @@ import { getProjectContextValue, ProjectResource } from './projectContextValues'
 export abstract class FunctionTreeItemBase extends AzExtTreeItem {
     public readonly parent: FunctionsTreeItemBase;
     public readonly name: string;
-    public triggerUrlTask: Promise<string | undefined>;
+    public readonly commandId: string = 'azureFunctions.viewProperties';
+    public triggerUrl: string | undefined;
 
     protected readonly _config: ParsedFunctionJson;
     private _disabled: boolean;
@@ -29,7 +30,6 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
         this._config = config;
         this.name = name;
         this._func = func;
-        this.commandId = 'azureFunctions.viewProperties';
     }
 
     public get id(): string {
@@ -103,14 +103,14 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
 
     public async initAsync(context: IActionContext): Promise<void> {
         if (this.isHttpTrigger) {
-            this.triggerUrlTask = this.getTriggerUrl(context);
+            await this.refreshTriggerUrl(context);
         }
 
         await this.refreshDisabledState(context);
     }
 
-    private async getTriggerUrl(context: IActionContext): Promise<string | undefined> {
-        const hostUrl = new url.URL(await this.parent.parent.getHostUrl(context));
+    private async refreshTriggerUrl(context: IActionContext): Promise<void> {
+        const hostUrl = new url.URL(this.parent.parent.hostUrl);
         let triggerUrl: url.URL;
         if (this._func?.invokeUrlTemplate) {
             triggerUrl = new url.URL(this._func?.invokeUrlTemplate);
@@ -127,7 +127,7 @@ export abstract class FunctionTreeItemBase extends AzExtTreeItem {
             triggerUrl.searchParams.set('code', key);
         }
 
-        return triggerUrl.toString();
+        this.triggerUrl = triggerUrl.toString();
     }
 
     /**

@@ -12,7 +12,6 @@ import { pythonDebugConfig } from '../../../debug/PythonDebugProvider';
 import { ext } from '../../../extensionVariables';
 import { venvUtils } from '../../../utils/venvUtils';
 import { getFuncWatchProblemMatcher } from '../../../vsCodeConfig/settings';
-import { convertToFunctionsTaskLabel } from '../../../vsCodeConfig/tasks';
 import { IProjectWizardContext } from '../../createNewProject/IProjectWizardContext';
 import { IPythonVenvWizardContext } from '../../createNewProject/pythonSteps/IPythonVenvWizardContext';
 import { ScriptInitVSCodeStep } from './ScriptInitVSCodeStep';
@@ -43,7 +42,7 @@ export class PythonInitVSCodeStep extends ScriptInitVSCodeStep {
     }
 
     protected getTasks(language: ProjectLanguage): TaskDefinition[] {
-        const pipInstallLabel: string = convertToFunctionsTaskLabel('pip install');
+        const pipInstallLabel: string = 'pipInstall';
         const dependsOn: string | undefined = this.useFuncExtensionsInstall ? extInstallTaskName : this._venvName ? pipInstallLabel : undefined;
         const tasks: TaskDefinition[] = [
             {

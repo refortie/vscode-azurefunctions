@@ -47,19 +47,14 @@ suite('tryParseFuncVersion', () => {
         assert.equal(tryParseFuncVersion(genericThree), FuncVersion.v3);
     });
 
-    const four: string = '~4';
-    test(four, () => {
-        assert.equal(tryParseFuncVersion(four), FuncVersion.v4);
+    const specificFour: string = '4.0.0';
+    test(specificFour, () => {
+        assert.equal(tryParseFuncVersion(specificFour), undefined);
     });
 
-    const specific99: string = '99.0.0';
-    test(specific99, () => {
-        assert.equal(tryParseFuncVersion(specific99), undefined);
-    });
-
-    const generic99: string = '~99';
-    test(generic99, () => {
-        assert.equal(tryParseFuncVersion(generic99), undefined);
+    const genericFour: string = '~4';
+    test(genericFour, () => {
+        assert.equal(tryParseFuncVersion(genericFour), undefined);
     });
 
     const beta: string = 'beta';

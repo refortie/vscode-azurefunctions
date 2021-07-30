@@ -4,12 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as path from 'path';
-import { Disposable, workspace, WorkspaceFolder } from 'vscode';
+import { Disposable, Task, tasks, workspace, WorkspaceFolder } from 'vscode';
 import { AzExtTreeItem, AzureAccountTreeItemBase, callWithTelemetryAndErrorHandling, GenericTreeItem, IActionContext, ISubscriptionContext } from 'vscode-azureextensionui';
 import { tryGetFunctionProjectRoot } from '../commands/createNewProject/verifyIsProject';
 import { getJavaDebugSubpath } from '../commands/initProjectForVSCode/InitVSCodeStep/JavaInitVSCodeStep';
 import { funcVersionSetting, hostFileName, pomXmlFileName, ProjectLanguage, projectLanguageSetting, projectSubpathSetting } from '../constants';
 import { ext } from '../extensionVariables';
+import { getFuncPortFromTaskOrProject, isFuncHostTask } from '../funcCoreTools/funcHostTask';
 import { FuncVersion, tryParseFuncVersion } from '../FuncVersion';
 import { localize } from '../localize';
 import { dotnetUtils } from '../utils/dotnetUtils';
@@ -66,7 +67,7 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
 
         const folders: readonly WorkspaceFolder[] = workspace.workspaceFolders || [];
         for (const folder of folders) {
-            const projectPath: string | undefined = await tryGetFunctionProjectRoot(context, folder);
+            const projectPath: string | undefined = await tryGetFunctionProjectRoot(context, folder.uri.fsPath, true /* suppressPrompt */);
             if (projectPath) {
                 try {
                     hasLocalProject = true;
@@ -79,7 +80,7 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
                         let preCompiledProjectPath: string | undefined;
                         let effectiveProjectPath: string;
                         let isIsolated: boolean | undefined;
-                        const compiledProjectInfo: CompiledProjectInfo | undefined = await getCompiledProjectInfo(context, projectPath, language);
+                        const compiledProjectInfo: CompiledProjectInfo | undefined = await getCompiledProjectInfo(projectPath, language);
                         if (compiledProjectInfo) {
                             preCompiledProjectPath = projectPath;
                             effectiveProjectPath = compiledProjectInfo.compiledProjectPath;
@@ -88,8 +89,10 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
                             effectiveProjectPath = projectPath;
                         }
 
+                        const funcTask: Task | undefined = (await tasks.fetchTasks()).find(t => t.scope === folder && isFuncHostTask(t));
+                        const funcPort = await getFuncPortFromTaskOrProject(context, funcTask, projectPath);
 
-                        const treeItem: LocalProjectTreeItem = new LocalProjectTreeItem(this, { effectiveProjectPath, folder, language, version, preCompiledProjectPath, isIsolated });
+                        const treeItem: LocalProjectTreeItem = new LocalProjectTreeItem(this, { effectiveProjectPath, folder, language, version, preCompiledProjectPath, isIsolated, funcPort });
                         this._projectDisposables.push(treeItem);
                         children.push(treeItem);
                     }
@@ -147,9 +150,9 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
 
 type CompiledProjectInfo = { compiledProjectPath: string; isIsolated: boolean };
 
-async function getCompiledProjectInfo(context: IActionContext, projectPath: string, projectLanguage: ProjectLanguage): Promise<CompiledProjectInfo | undefined> {
+async function getCompiledProjectInfo(projectPath: string, projectLanguage: ProjectLanguage): Promise<CompiledProjectInfo | undefined> {
     if (projectLanguage === ProjectLanguage.CSharp || projectLanguage === ProjectLanguage.FSharp) {
-        const projFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(context, projectLanguage, projectPath);
+        const projFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(projectLanguage, projectPath);
         if (projFiles.length === 1) {
             const targetFramework: string = await dotnetUtils.getTargetFramework(projFiles[0]);
             const isIsolated = await dotnetUtils.getIsIsolated(projFiles[0]);

@@ -22,10 +22,10 @@ export function getJavaScriptValidateOptions(hasPackageJson: boolean = false, ve
     const expectedTasks: string[] = ['host start'];
 
     if (hasPackageJson) {
-        expectedSettings['azureFunctions.preDeployTask'] = 'npm prune (functions)';
-        expectedSettings['azureFunctions.postDeployTask'] = 'npm install (functions)';
+        expectedSettings['azureFunctions.preDeployTask'] = 'npm prune';
+        expectedSettings['azureFunctions.postDeployTask'] = 'npm install';
         expectedPaths.push('package.json');
-        expectedTasks.push('npm install (functions)', 'npm prune (functions)');
+        expectedTasks.push('npm install', 'npm prune');
     }
 
     return {
@@ -50,8 +50,8 @@ export function getTypeScriptValidateOptions(version: FuncVersion = defaultVersi
             'azureFunctions.projectLanguage': ProjectLanguage.TypeScript,
             'azureFunctions.projectRuntime': version,
             'azureFunctions.deploySubpath': '.',
-            'azureFunctions.preDeployTask': 'npm prune (functions)',
-            'azureFunctions.postDeployTask': 'npm install (functions)',
+            'azureFunctions.preDeployTask': 'npm prune',
+            'azureFunctions.postDeployTask': 'npm install',
             'debug.internalConsoleOptions': 'neverOpen',
         },
         expectedPaths: [
@@ -64,9 +64,9 @@ export function getTypeScriptValidateOptions(version: FuncVersion = defaultVersi
             'Attach to Node Functions'
         ],
         expectedTasks: [
-            'npm build (functions)',
-            'npm install (functions)',
-            'npm prune (functions)',
+            'npm build',
+            'npm install',
+            'npm prune',
             'host start'
         ]
     };
@@ -79,7 +79,7 @@ export function getCSharpValidateOptions(targetFramework: string, version: FuncV
         expectedSettings: {
             'azureFunctions.projectLanguage': ProjectLanguage.CSharp,
             'azureFunctions.projectRuntime': version,
-            'azureFunctions.preDeployTask': 'publish (functions)',
+            'azureFunctions.preDeployTask': 'publish',
             'azureFunctions.deploySubpath': `bin/Release/${targetFramework}/publish`,
             'debug.internalConsoleOptions': 'neverOpen',
         },
@@ -96,10 +96,10 @@ export function getCSharpValidateOptions(targetFramework: string, version: FuncV
             'Attach to .NET Functions'
         ],
         expectedTasks: [
-            'clean (functions)',
-            'build (functions)',
-            'clean release (functions)',
-            'publish (functions)',
+            'clean',
+            'build',
+            'clean release',
+            'publish',
             'host start'
         ]
     };
@@ -112,7 +112,7 @@ export function getFSharpValidateOptions(targetFramework: string, version: FuncV
         expectedSettings: {
             'azureFunctions.projectLanguage': ProjectLanguage.FSharp,
             'azureFunctions.projectRuntime': version,
-            'azureFunctions.preDeployTask': 'publish (functions)',
+            'azureFunctions.preDeployTask': 'publish',
             'azureFunctions.deploySubpath': `bin/Release/${targetFramework}/publish`,
             'debug.internalConsoleOptions': 'neverOpen',
         },
@@ -130,10 +130,10 @@ export function getFSharpValidateOptions(targetFramework: string, version: FuncV
             'Attach to .NET Functions'
         ],
         expectedTasks: [
-            'clean (functions)',
-            'build (functions)',
-            'clean release (functions)',
-            'publish (functions)',
+            'clean',
+            'build',
+            'clean release',
+            'publish',
             'host start'
         ]
     };
@@ -142,7 +142,7 @@ export function getFSharpValidateOptions(targetFramework: string, version: FuncV
 export function getPythonValidateOptions(venvName: string | undefined, version: FuncVersion = defaultVersion): IValidateProjectOptions {
     const expectedTasks: string[] = ['host start'];
     if (venvName) {
-        expectedTasks.push('pip install (functions)');
+        expectedTasks.push('pipInstall');
     }
 
     return {
@@ -176,7 +176,7 @@ export function getJavaValidateOptions(appName: string, version: FuncVersion = d
         expectedSettings: {
             'azureFunctions.projectLanguage': ProjectLanguage.Java,
             'azureFunctions.projectRuntime': version,
-            'azureFunctions.preDeployTask': 'package (functions)',
+            'azureFunctions.preDeployTask': 'package',
             'azureFunctions.deploySubpath': `target/azure-functions/${appName}`,
             'debug.internalConsoleOptions': 'neverOpen',
         },
@@ -195,7 +195,7 @@ export function getJavaValidateOptions(appName: string, version: FuncVersion = d
         ],
         expectedTasks: [
             'host start',
-            'package (functions)'
+            'package'
         ]
     };
 }

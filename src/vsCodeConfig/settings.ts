@@ -3,11 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ConfigurationTarget, Uri, workspace, WorkspaceConfiguration, WorkspaceFolder } from "vscode";
-import { IActionContext } from "vscode-azureextensionui";
+import { ConfigurationTarget, Uri, workspace, WorkspaceConfiguration } from "vscode";
 import { ProjectLanguage } from '../constants';
 import { ext } from "../extensionVariables";
-import { dotnetUtils } from "../utils/dotnetUtils";
 
 /**
  * Uses ext.prefix 'azureFunctions' unless otherwise specified
@@ -20,8 +18,8 @@ export async function updateGlobalSetting<T = string>(section: string, value: T,
 /**
  * Uses ext.prefix 'azureFunctions' unless otherwise specified
  */
-export async function updateWorkspaceSetting<T = string>(section: string, value: T, fsPath: string | WorkspaceFolder, prefix: string = ext.prefix): Promise<void> {
-    const projectConfiguration: WorkspaceConfiguration = workspace.getConfiguration(prefix, getScope(fsPath));
+export async function updateWorkspaceSetting<T = string>(section: string, value: T, fsPath: string, prefix: string = ext.prefix): Promise<void> {
+    const projectConfiguration: WorkspaceConfiguration = workspace.getConfiguration(prefix, Uri.file(fsPath));
     await projectConfiguration.update(section, value);
 }
 
@@ -37,13 +35,9 @@ export function getGlobalSetting<T>(key: string, prefix: string = ext.prefix): T
 /**
  * Uses ext.prefix 'azureFunctions' unless otherwise specified
  */
-export function getWorkspaceSetting<T>(key: string, fsPath?: string | WorkspaceFolder, prefix: string = ext.prefix): T | undefined {
-    const projectConfiguration: WorkspaceConfiguration = workspace.getConfiguration(prefix, getScope(fsPath));
+export function getWorkspaceSetting<T>(key: string, fsPath?: string, prefix: string = ext.prefix): T | undefined {
+    const projectConfiguration: WorkspaceConfiguration = workspace.getConfiguration(prefix, fsPath ? Uri.file(fsPath) : undefined);
     return projectConfiguration.get<T>(key);
-}
-
-function getScope(fsPath: WorkspaceFolder | string | undefined): Uri | WorkspaceFolder | undefined {
-    return typeof fsPath === 'string' ? Uri.file(fsPath) : fsPath;
 }
 
 /**
@@ -68,11 +62,7 @@ export function getWorkspaceSettingFromAnyFolder(key: string, prefix: string = e
     }
 }
 
-/**
- * Gets the "root" worker runtime, aka not the project-specific worker runtime
- * For example, this will return 'dotnet', never 'dotnet-isolated'
- */
-export function getRootFunctionsWorkerRuntime(language: string | undefined): string | undefined {
+export function getFunctionsWorkerRuntime(language: string | undefined): string | undefined {
     switch (language) {
         case ProjectLanguage.JavaScript:
         case ProjectLanguage.TypeScript:
@@ -93,31 +83,11 @@ export function getRootFunctionsWorkerRuntime(language: string | undefined): str
     }
 }
 
-export async function tryGetFunctionsWorkerRuntimeForProject(context: IActionContext, language: string | undefined, projectPath: string | undefined): Promise<string | undefined> {
-    let runtime = getRootFunctionsWorkerRuntime(language);
-    if (language === ProjectLanguage.CSharp || language === ProjectLanguage.FSharp) {
-        if (projectPath) {
-            const projFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(context, language, projectPath);
-            if (projFiles.length === 1) {
-                if (await dotnetUtils.getIsIsolated(projFiles[0])) {
-                    runtime += '-isolated';
-                }
-                return runtime;
-            }
-        }
-
-        // Couldn't definitively determine isolated vs. non-isolated, so return undefined
-        return undefined;
-    }
-
-    return runtime;
-}
-
 export function isKnownWorkerRuntime(runtime: string | undefined): boolean {
-    return !!runtime && ['node', 'dotnet', 'dotnet-isolated', 'java', 'python', 'powershell', 'custom'].includes(runtime.toLowerCase());
+    return !!runtime && ['node', 'dotnet', 'java', 'python', 'powershell', 'custom'].includes(runtime.toLowerCase());
 }
 
 export function getFuncWatchProblemMatcher(language: string | undefined): string {
-    const runtime: string | undefined = getRootFunctionsWorkerRuntime(language);
+    const runtime: string | undefined = getFunctionsWorkerRuntime(language);
     return runtime && runtime !== 'custom' ? `$func-${runtime}-watch` : '$func-watch';
 }

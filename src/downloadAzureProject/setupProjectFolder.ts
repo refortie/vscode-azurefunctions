@@ -6,15 +6,12 @@
 import { WebSiteManagementModels } from '@azure/arm-appservice';
 import { RequestPrepareOptions } from '@azure/ms-rest-js';
 import * as extract from 'extract-zip';
-import * as path from 'path';
 import * as querystring from 'querystring';
 import * as vscode from 'vscode';
-import { IAppSettingsClient } from 'vscode-azureappservice';
 import { IActionContext, parseError } from 'vscode-azureextensionui';
-import { downloadAppSettingsInternal } from '../commands/appSettings/downloadAppSettings';
 import { localDockerPrompt } from '../commands/dockersupport/localDockerSupport';
 import { initProjectForVSCode } from '../commands/initProjectForVSCode/initProjectForVSCode';
-import { localSettingsFileName, ProjectLanguage } from '../constants';
+import { ProjectLanguage } from '../constants';
 import { ext } from '../extensionVariables';
 import { localize } from '../localize';
 import { ProductionSlotTreeItem } from '../tree/ProductionSlotTreeItem';
@@ -34,6 +31,7 @@ export async function setupProjectFolder(uri: vscode.Uri, vsCodeFilePathUri: vsc
     await setupProjectFolderParsed(resourceId, language, vsCodeFilePathUri, context, node, devContainerName);
 }
 
+//call this directly if you are staring from VSCode extension
 export async function setupProjectFolderParsed(resourceId: string, language: string,
     vsCodeFilePathUri: vscode.Uri, context: IActionContext, node?: SlotTreeItemBase, devContainerName?: string,): Promise<void> {
 
@@ -68,28 +66,12 @@ export async function setupProjectFolderParsed(resourceId: string, language: str
             const devContainerFolderPathUri: vscode.Uri = vscode.Uri.joinPath(projectFilePathUri, '.devcontainer');
 
             await extract(downloadFilePath, { dir: projectFilePath });
-
-            if (node) {
-                const client: IAppSettingsClient = node.client;
-                const localSettingsPath: string = path.join(projectFilePathUri.fsPath, localSettingsFileName);
-                await downloadAppSettingsInternal(context, client, localSettingsPath);
-            }
-
-            const openInContainer: boolean = await localDockerPrompt(context, devContainerFolderPathUri, node, devContainerName);
+            await localDockerPrompt(context, devContainerFolderPathUri, node, devContainerName);
             await initProjectForVSCode(context, projectFilePath, getProjectLanguageForLanguage(language));
 
             void vscode.window.showInformationMessage(localize('restartingVsCodeInfoMessage', 'Restarting VS Code with your function app project'));
-            // Setting a delay so that users are able to see the message before new window opens
             const delayMilliseconds = 1500;
-            if (openInContainer) {
-                setTimeout((commandString, filePath, openFile) => {
-                    void vscode.commands.executeCommand(commandString, filePath, openFile);
-                }, delayMilliseconds, 'remote-containers.openFolder', vscode.Uri.file(projectFilePath), true);
-            } else {
-                setTimeout((commandString, filePath, openFile) => {
-                    void vscode.commands.executeCommand(commandString, filePath, openFile);
-                }, delayMilliseconds, 'vscode.openFolder', vscode.Uri.file(projectFilePath), true);
-            }
+            setTimeout(vscode.commands.executeCommand, delayMilliseconds, 'vscode.openFolder', vscode.Uri.file(projectFilePath), true)
         });
     } catch (err) {
         throw new Error(localize('failedLocalProjSetupErrorMessage', 'Failed to set up your local project: "{0}".', parseError(err).message));

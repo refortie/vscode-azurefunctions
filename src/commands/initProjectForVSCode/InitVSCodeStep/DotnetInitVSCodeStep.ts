@@ -6,18 +6,15 @@
 import * as path from 'path';
 import { DebugConfiguration, MessageItem, TaskDefinition } from 'vscode';
 import { DialogResponses, parseError } from 'vscode-azureextensionui';
-import { func, hostStartCommand, ProjectLanguage } from '../../../constants';
+import { dotnetPublishTaskLabel, func, hostStartCommand, ProjectLanguage } from '../../../constants';
 import { FuncVersion, tryParseFuncVersion } from '../../../FuncVersion';
 import { localize } from "../../../localize";
 import { dotnetUtils } from '../../../utils/dotnetUtils';
 import { nonNullProp } from '../../../utils/nonNull';
 import { openUrl } from '../../../utils/openUrl';
 import { getFuncWatchProblemMatcher, getWorkspaceSetting, updateGlobalSetting } from '../../../vsCodeConfig/settings';
-import { convertToFunctionsTaskLabel } from '../../../vsCodeConfig/tasks';
 import { IProjectWizardContext } from '../../createNewProject/IProjectWizardContext';
 import { InitVSCodeStepBase } from './InitVSCodeStepBase';
-
-const dotnetPublishTaskLabel: string = convertToFunctionsTaskLabel('publish');
 
 export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
     protected preDeployTask: string = dotnetPublishTaskLabel;
@@ -51,7 +48,7 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
         const language: ProjectLanguage = nonNullProp(context, 'language');
 
         let projFile: dotnetUtils.ProjectFile;
-        const projFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(context, language, projectPath);
+        const projFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(language, projectPath);
         const fileExt: string = language === ProjectLanguage.FSharp ? 'fsproj' : 'csproj';
         if (projFiles.length === 1) {
             projFile = projFiles[0];
@@ -73,7 +70,7 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
             if (getWorkspaceSetting<boolean>(settingKey)) {
                 const message: string = localize('64BitWarning', 'In order to debug .NET Framework functions in VS Code, you must install a 64-bit version of the Azure Functions Core Tools.');
                 try {
-                    const result: MessageItem = await context.ui.showWarningMessage(message, { stepName: 'netDebug64bit' }, DialogResponses.learnMore, DialogResponses.dontWarnAgain);
+                    const result: MessageItem = await context.ui.showWarningMessage(message, DialogResponses.learnMore, DialogResponses.dontWarnAgain);
                     if (result === DialogResponses.learnMore) {
                         await openUrl('https://aka.ms/azFunc64bit');
                     } else if (result === DialogResponses.dontWarnAgain) {
@@ -97,13 +94,9 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
         const commonArgs: string[] = ['/property:GenerateFullPaths=true', '/consoleloggerparameters:NoSummary'];
         const releaseArgs: string[] = ['--configuration', 'Release'];
 
-        const buildLabel = convertToFunctionsTaskLabel('build');
-        const cleanLabel = convertToFunctionsTaskLabel('clean');
-        const cleanReleaseLabel = convertToFunctionsTaskLabel('clean release');
-
         return [
             {
-                label: cleanLabel,
+                label: 'clean',
                 command: 'dotnet',
                 args: [
                     'clean',
@@ -113,14 +106,14 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
                 problemMatcher: '$msCompile'
             },
             {
-                label: buildLabel,
+                label: 'build',
                 command: 'dotnet',
                 args: [
                     'build',
                     ...commonArgs
                 ],
                 type: 'process',
-                dependsOn: cleanLabel,
+                dependsOn: 'clean',
                 group: {
                     kind: 'build',
                     isDefault: true
@@ -128,7 +121,7 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
                 problemMatcher: '$msCompile'
             },
             {
-                label: cleanReleaseLabel,
+                label: 'clean release',
                 command: 'dotnet',
                 args: [
                     'clean',
@@ -147,12 +140,12 @@ export class DotnetInitVSCodeStep extends InitVSCodeStepBase {
                     ...commonArgs
                 ],
                 type: 'process',
-                dependsOn: cleanReleaseLabel,
+                dependsOn: 'clean release',
                 problemMatcher: '$msCompile'
             },
             {
                 type: func,
-                dependsOn: buildLabel,
+                dependsOn: 'build',
                 options: {
                     cwd: this._debugSubpath
                 },

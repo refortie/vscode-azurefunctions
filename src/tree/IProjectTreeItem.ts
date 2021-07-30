@@ -12,7 +12,7 @@ export type ApplicationSettings = { [propertyName: string]: string };
 
 export interface IProjectTreeItem {
     source: ProjectSource;
-    getHostUrl(context: IActionContext): Promise<string>;
+    hostUrl: string;
     getHostJson(context: IActionContext): Promise<IParsedHostJson>;
     getVersion(): Promise<FuncVersion>;
     getApplicationSettings(context: IActionContext): Promise<ApplicationSettings>;
