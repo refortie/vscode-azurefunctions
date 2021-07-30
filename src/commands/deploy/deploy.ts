@@ -36,21 +36,21 @@ export async function deploySlot(context: IActionContext, target?: vscode.Uri | 
 async function deploy(actionContext: IActionContext, arg1: vscode.Uri | string | SlotTreeItemBase | undefined, arg2: string | {} | undefined, expectedContextValue: string): Promise<void> {
     addLocalFuncTelemetry(actionContext);
 
-    const deployPaths: IDeployPaths = await getDeployFsPath(actionContext, arg1); // waits to make sure that the `effectiveDeployFsPath` is currently open in a workspace
-    const context: IDeployContext = Object.assign(actionContext, deployPaths, { defaultAppSetting: 'defaultFunctionAppToDeploy' }); // copying propoerties paths and default settings to context
-    const node: SlotTreeItemBase = await getDeployNode(context, ext.tree, arg1, arg2, expectedContextValue); // waits until node used to deploy is retrived
+    const deployPaths: IDeployPaths = await getDeployFsPath(actionContext, arg1);
+    const context: IDeployContext = Object.assign(actionContext, deployPaths, { defaultAppSetting: 'defaultFunctionAppToDeploy' });
+    const node: SlotTreeItemBase = await getDeployNode(context, ext.tree, arg1, arg2, expectedContextValue);
 
-    const [language, version]: [ProjectLanguage, FuncVersion] = await verifyInitForVSCode(context, context.effectiveDeployFsPath); // verifying configurations for correct initializiation
-    context.telemetry.properties.projectLanguage = language; // setting language
-    context.telemetry.properties.projectRuntime = version; // setting version
+    const [language, version]: [ProjectLanguage, FuncVersion] = await verifyInitForVSCode(context, context.effectiveDeployFsPath);
+    context.telemetry.properties.projectLanguage = language;
+    context.telemetry.properties.projectRuntime = version;
 
-    if (language === ProjectLanguage.Python && !node.root.client.isLinux) { // check if user attempts to use python on windows
+    if (language === ProjectLanguage.Python && !node.root.client.isLinux) {
         context.errorHandling.suppressReportIssue = true;
         throw new Error(localize('pythonNotAvailableOnWindows', 'Python projects are not supported on Windows Function Apps. Deploy to a Linux Function App instead.'));
     }
 
-    const siteConfig: WebSiteManagementModels.SiteConfigResource = await node.root.client.getSiteConfig(); // retrieving client site configuration
-    const isConsumption: boolean = await node.root.client.getIsConsumption(); //unsure?
+    const siteConfig: WebSiteManagementModels.SiteConfigResource = await node.root.client.getSiteConfig();
+    const isConsumption: boolean = await node.root.client.getIsConsumption();
     let isZipDeploy: boolean = siteConfig.scmType !== ScmType.LocalGit && siteConfig.scmType !== ScmType.GitHub;
     if (!isZipDeploy && node.root.client.isLinux && isConsumption) {
         ext.outputChannel.appendLog(localize('linuxConsZipOnly', 'WARNING: Using zip deploy because scm type "{0}" is not supported on Linux consumption', siteConfig.scmType), { resourceName: node.root.client.fullName });
@@ -58,10 +58,10 @@ async function deploy(actionContext: IActionContext, arg1: vscode.Uri | string |
         context.deployMethod = 'zip';
     }
 
-    const doRemoteBuild: boolean | undefined = getWorkspaceSetting<boolean>(remoteBuildSetting, deployPaths.effectiveDeployFsPath); // retrieving project configuration settings
+    const doRemoteBuild: boolean | undefined = getWorkspaceSetting<boolean>(remoteBuildSetting, deployPaths.effectiveDeployFsPath);
     actionContext.telemetry.properties.scmDoBuildDuringDeployment = String(doRemoteBuild);
-    if (doRemoteBuild) { // if configurations were found
-        await validateRemoteBuild(context, node.root.client, context.workspaceFolder.uri.fsPath, language); // ensuring that correct version or config of function app is being used
+    if (doRemoteBuild) {
+        await validateRemoteBuild(context, node.root.client, context.workspaceFolder, language);
     }
 
     if (isZipDeploy && node.root.client.isLinux && isConsumption && !doRemoteBuild) {
@@ -72,21 +72,22 @@ async function deploy(actionContext: IActionContext, arg1: vscode.Uri | string |
         await showDeployConfirmation(context, node.root.client, 'azureFunctions.deploy');
     }
 
-    await runPreDeployTask(context, context.effectiveDeployFsPath, siteConfig.scmType); // a series of checks made
+    await runPreDeployTask(context, context.effectiveDeployFsPath, siteConfig.scmType);
 
     if (isZipDeploy) {
         void validateGlobSettings(context, context.effectiveDeployFsPath);
     }
 
-    if (language === ProjectLanguage.CSharp && !node.root.client.isLinux) { // checking if client may potentially need to update worker proccess
+    if (language === ProjectLanguage.CSharp && !node.root.client.isLinux) {
         await updateWorkerProcessTo64BitIfRequired(context, siteConfig, node, language);
     }
 
     if (isZipDeploy) {
-        await verifyAppSettings(context, node, version, language, { doRemoteBuild, isConsumption });
+        const projectPath = await tryGetFunctionProjectRoot(context, deployPaths.workspaceFolder);
+        await verifyAppSettings(context, node, projectPath, version, language, { doRemoteBuild, isConsumption });
     }
 
-    await node.runWithTemporaryDescription( // issues temporary description while call back is being run
+    await node.runWithTemporaryDescription(
         context,
         localize('deploying', 'Deploying...'),
         async () => {
@@ -107,15 +108,15 @@ async function deploy(actionContext: IActionContext, arg1: vscode.Uri | string |
         }
     );
 
-    await notifyDeployComplete(context, node, context.workspaceFolder.uri.fsPath); // waiting for succesfull deployment confirmation
+    await notifyDeployComplete(context, node, context.workspaceFolder);
 }
 
 async function updateWorkerProcessTo64BitIfRequired(context: IDeployContext, siteConfig: WebSiteManagementModels.SiteConfigResource, node: SlotTreeItemBase, language: ProjectLanguage): Promise<void> {
-    const functionProject: string | undefined = await tryGetFunctionProjectRoot(context, context.workspaceFolder.uri.fsPath);
+    const functionProject: string | undefined = await tryGetFunctionProjectRoot(context, context.workspaceFolder);
     if (functionProject === undefined) {
         return;
     }
-    const projectFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(language, functionProject);
+    const projectFiles: dotnetUtils.ProjectFile[] = await dotnetUtils.getProjFiles(context, language, functionProject);
     if (projectFiles.length !== 1) {
         return;
     }
@@ -123,14 +124,14 @@ async function updateWorkerProcessTo64BitIfRequired(context: IDeployContext, sit
     if (platformTarget === 'x64' && siteConfig.use32BitWorkerProcess === true) {
         const message: string = localize('overwriteSetting', 'The remote app targets "{0}", but your local project targets "{1}". Update remote app to "{1}"?', '32 bit', '64 bit');
         const deployAnyway: vscode.MessageItem = { title: localize('deployAnyway', 'Deploy Anyway') };
-        const dialogResult: vscode.MessageItem = await context.ui.showWarningMessage(message, { modal: true }, DialogResponses.yes, deployAnyway);
+        const dialogResult: vscode.MessageItem = await context.ui.showWarningMessage(message, { modal: true, stepName: 'mismatch64bit' }, DialogResponses.yes, deployAnyway);
         if (dialogResult === deployAnyway) {
             return;
         }
         const config: WebSiteManagementModels.SiteConfigResource = {
             use32BitWorkerProcess: false
         };
-        await node.root.client.updateConfiguration(config); // adjusting configurations
+        await node.root.client.updateConfiguration(config);
     }
 }
 
@@ -139,9 +140,9 @@ async function validateGlobSettings(context: IActionContext, fsPath: string): Pr
     const excludeKey: string = 'zipIgnorePattern';
     const includeSetting: string | undefined = getWorkspaceSetting(includeKey, fsPath);
     const excludeSetting: string | string[] | undefined = getWorkspaceSetting(excludeKey, fsPath);
-    if (includeSetting || excludeSetting) { // validating global settings are supported and suggesting fix otherwise
+    if (includeSetting || excludeSetting) {
         context.telemetry.properties.hasOldGlobSettings = 'true';
         const message: string = localize('globSettingRemoved', '"{0}" and "{1}" settings are no longer supported. Instead, place a ".funcignore" file at the root of your repo, using the same syntax as a ".gitignore" file.', includeKey, excludeKey);
-        await context.ui.showWarningMessage(message);
+        await context.ui.showWarningMessage(message, { stepName: 'globSettingRemoved' });
     }
 }
