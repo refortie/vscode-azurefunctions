@@ -36,7 +36,7 @@ import { disconnectRepo } from './deployments/disconnectRepo';
 import { redeployDeployment } from './deployments/redeployDeployment';
 import { viewCommitInGitHub } from './deployments/viewCommitInGitHub';
 import { viewDeploymentLogs } from './deployments/viewDeploymentLogs';
-import { runInContainer } from './dockersupport/runInContainer';
+import { reopenInContainer } from './dockersupport/reopenInContainer';
 import { updateContainer } from './dockersupport/updateContainer';
 import { editAppSetting } from './editAppSetting';
 import { executeFunction } from './executeFunction';
@@ -112,7 +112,7 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.viewProperties', viewProperties);
     registerCommand('azureFunctions.showOutputChannel', () => { ext.outputChannel.show(); });
     registerCommand('azureFunctions.cloneLocally', cloneLocally);
-    registerCommand('azureFunctions.runInContainer', runInContainer);
+    registerCommand('azureFunctions.reopenInContainer', reopenInContainer);
     registerCommand('azureFunctions.updateContainer', updateContainer);
 
 }

@@ -102,7 +102,7 @@ function getProjectLanguageForLanguage(language: string): ProjectLanguage | unde
     }
 }
 
-function getDevContainerName(language: string): string | undefined {
+export function getDevContainerName(language: string): string | undefined {
     switch (language) {
         case 'node':
             return 'azure-functions-node';

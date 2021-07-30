@@ -80,7 +80,7 @@
         "onCommand:azureFunctions.setAzureWebJobsStorage",
         "onCommand:azureFunctions.reportIssue",
         "onCommand:azureFunctions.cloneLocally",
-        "onCommand:azureFunctions.runInContainer",
+        "onCommand:azureFunctions.reopenInContainer",
         "onCommand:azureFunctions.updateContainer",
         "workspaceContains:**/host.json",
         "onView:azFuncTree",
@@ -367,8 +367,8 @@
                 "category": "Azure Functions"
             },
             {
-                "command": "azureFunctions.runInContainer",
-                "title": "%azureFunctions.runInContainer%",
+                "command": "azureFunctions.reopenInContainer",
+                "title": "%azureFunctions.reopenInContainer%",
                 "category": "Azure Functions"
             },
             {
@@ -693,13 +693,13 @@
                     "group": "zzz_azuretools_deploy@2"
                 },
                 {
-                    "command": "azureFunctions.runInContainer",
-                    "when": "explorerResourceIsFolder == true",
+                    "command": "azureFunctions.reopenInContainer",
+                    "when": "explorerResourceIsFolder == true && resourceFilename != .devcontainer",
                     "group": "zzz_azuretools_deploy@3"
                 },
                 {
                     "command": "azureFunctions.updateContainer",
-                    "when": "explorerResourceIsFolder == true",
+                    "when": "explorerResourceIsFolder == true && resourceFilename == .devcontainer",
                     "group": "zzz_azuretools_deploy@4"
                 },
                 {
