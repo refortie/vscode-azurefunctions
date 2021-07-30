@@ -10,7 +10,6 @@ import { cloneLocally } from '../downloadAzureProject/cloneProjectLocally';
 import { ext } from '../extensionVariables';
 import { installOrUpdateFuncCoreTools } from '../funcCoreTools/installOrUpdateFuncCoreTools';
 import { uninstallFuncCoreTools } from '../funcCoreTools/uninstallFuncCoreTools';
-import { ProductionSlotTreeItem } from '../tree/ProductionSlotTreeItem';
 import { ProxyTreeItem } from '../tree/ProxyTreeItem';
 import { SlotTreeItem } from '../tree/SlotTreeItem';
 import { addBinding } from './addBinding/addBinding';
@@ -29,6 +28,7 @@ import { createFunctionApp, createFunctionAppAdvanced } from './createFunctionAp
 import { createNewProjectFromCommand } from './createNewProject/createNewProject';
 import { createSlot } from './createSlot';
 import { deleteFunction } from './deleteFunction';
+import { deleteFunctionApp } from './deleteFunctionApp';
 import { deleteNode } from './deleteNode';
 import { deployProductionSlot, deploySlot } from './deploy/deploy';
 import { connectToGitHub } from './deployments/connectToGitHub';
@@ -54,7 +54,6 @@ import { swapSlot } from './swapSlot';
 import { disableFunction, enableFunction } from './updateDisabledState';
 import { viewProperties } from './viewProperties';
 
-
 export function registerCommands(): void {
     registerCommand('azureFunctions.addBinding', addBinding);
     registerCommand('azureFunctions.appSettings.add', async (context: IActionContext, node?: AzExtParentTreeItem) => await createChildNode(context, AppSettingsTreeItem.contextValue, node));
@@ -76,7 +75,7 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.createNewProject', createNewProjectFromCommand);
     registerCommand('azureFunctions.createSlot', createSlot);
     registerCommand('azureFunctions.deleteFunction', deleteFunction);
-    registerCommand('azureFunctions.deleteFunctionApp', async (context: IActionContext, node?: AzExtTreeItem) => await deleteNode(context, ProductionSlotTreeItem.contextValue, node)); // menu item 3
+    registerCommand('azureFunctions.deleteFunctionApp', deleteFunctionApp);
     registerCommand('azureFunctions.deleteProxy', async (context: IActionContext, node?: AzExtTreeItem) => await deleteNode(context, ProxyTreeItem.contextValue, node));
     registerCommand('azureFunctions.deleteSlot', async (context: IActionContext, node?: AzExtTreeItem) => await deleteNode(context, SlotTreeItem.contextValue, node));
     registerCommand('azureFunctions.disableFunction', disableFunction);
@@ -92,7 +91,7 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.openInPortal', openInPortal);
     registerCommand('azureFunctions.pickProcess', pickFuncProcess);
     registerSiteCommand('azureFunctions.redeploy', redeployDeployment);
-    registerCommand('azureFunctions.refresh', async (context: IActionContext, node?: AzureTreeItem) => await ext.tree.refresh(context, node)); // menu item 5
+    registerCommand('azureFunctions.refresh', async (context: IActionContext, node?: AzureTreeItem) => await ext.tree.refresh(context, node));
     registerCommand('azureFunctions.restartFunctionApp', restartFunctionApp);
     registerCommand('azureFunctions.selectSubscriptions', () => commands.executeCommand('azure-account.selectSubscriptions'));
     registerCommand('azureFunctions.setAzureWebJobsStorage', setAzureWebJobsStorage);
@@ -110,5 +109,4 @@ export function registerCommands(): void {
     registerCommand('azureFunctions.viewProperties', viewProperties);
     registerCommand('azureFunctions.showOutputChannel', () => { ext.outputChannel.show(); });
     registerCommand('azureFunctions.cloneLocally', cloneLocally);
-
 }

@@ -21,23 +21,27 @@ export const DOCKER_PROMPT_YES = "yes";
  * @param devContainerName - string name of dev container
  * @param node - Function App Project
  */
-export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<void> {
+export async function localDockerPrompt(context: IActionContext, devContainerFolderPathUri: vscode.Uri, node?: SlotTreeItemBase, devContainerName?: string): Promise<boolean> {
     if (node && devContainerName && node.site.reserved) {
         if (await prompt(context) === DOCKER_PROMPT_YES) {
             await downloadLocalDevFiles(devContainerFolderPathUri, devContainerName);
-            if (!validateDockerInstalled()) {
+            if (!(await validateDockerInstalled())) {
                 const dockerDocumentation: string = localize('documentation', 'Docker Documentation');
                 await vscode.window.showInformationMessage(localize('download', 'We noticed you don\'t have Docker installed. Check the Docker Documentation to download Docker to your system.'), dockerDocumentation,).then(async result => {
                     if (result === dockerDocumentation) {
                         await openUrl('https://docs.docker.com/get-docker/');
                     }
                 });
+                return false;
             }
+            return true;
         } else {
             void vscode.window.showInformationMessage(localize('noDocker', 'Continuing without the use of Docker as user requested'));
+            return false;
         }
     } else {
         void vscode.window.showInformationMessage(localize('unableDocker', 'Initializing project without the use of Docker'));
+        return false;
     }
 }
 
