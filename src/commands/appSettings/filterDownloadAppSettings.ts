@@ -23,7 +23,8 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
     const yesToAll: vscode.MessageItem = { title: localize('yesToAll', 'Yes to all') };
     const noToAll: vscode.MessageItem = { title: localize('noToAll', 'No to all') };
 
-    destinationSettingsToIgnore.length = 0;
+    const result = await context.ui.showQuickPick(options, { placeHolder: 'Select the app settings you would like to download:', isPickSelected: (item) => { return !listOfSettingsToIgnore.includes(item.label) }, canPickMany: true });
+    const userChosenSettings: string[] = result ? result.map(item => item.label) : [];
 
     for (const key of Object.keys(sourceSettings)) {
         if (listOfSettingsToIgnore.includes(key)) {
