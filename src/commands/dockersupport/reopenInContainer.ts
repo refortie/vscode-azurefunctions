@@ -23,7 +23,6 @@ export async function reopenInContainer(context: IProjectWizardContext, node?: A
             void vscode.window.showInformationMessage(localize('noProjectOpened', 'Conditions not met. Cannot use Docker with this project'));
         }
     } catch (error) {
-        const message: string = localize('failReopenInContainer', 'Failed to reopen project in a dev container.');
-        throw new Error(message);
+        void vscode.window.showInformationMessage(localize('failReopenInContainer', 'Failed to reopen project in a dev container.'));
     }
 }
