@@ -16,7 +16,7 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
 
     const listOfSettingsToIgnore: string[] = ["AzureWebJobsStorage", "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", "WEBSITE_CONTENTSHARE"];
     const options: vscode.QuickPickItem[] = [];
-    destinationSettingsToIgnore.length = 0;
+    // destinationSettingsToIgnore.length = 0;
 
     for (const element of Object.keys(sourceSettings)) {
         options.push({
@@ -24,9 +24,10 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
         });
     }
 
-    const result = await context.ui.showQuickPick(options, { placeHolder: 'Select the app settings you would like to download:', isPickSelected: (item) => { return !listOfSettingsToIgnore.includes(item.label) }, canPickMany: true });
+    const result = await context.ui.showQuickPick(options, { placeHolder: 'Select the app settings you would like to download:', isPickSelected: (item) => { return (!listOfSettingsToIgnore.includes(item.label) && !destinationSettingsToIgnore.includes(item.label)) }, canPickMany: true });
     const userChosenSettings: string[] = result ? result.map(item => item.label) : [];
 
+    destinationSettingsToIgnore.length = 0;
     for (const key of Object.keys(sourceSettings)) {
         if (userChosenSettings.includes(key)) {
             // Explicit check for undefined as destinationSettings[key] could be empty but valid
@@ -42,7 +43,9 @@ export async function filterDownloadAppSettings(context: IActionContext, sourceS
         }
         else {
             userIgnoredKeys.push(key);
-            destinationSettings[key] = "_REDACTED_";
+            if (destinationSettings[key] === undefined) {
+                destinationSettings[key] = "_REDACTED_";
+            }
             destinationSettingsToIgnore.push(key);
         }
     }
