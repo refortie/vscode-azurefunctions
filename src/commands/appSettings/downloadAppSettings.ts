@@ -6,7 +6,7 @@
 import { WebSiteManagementModels } from "@azure/arm-appservice";
 import * as fse from 'fs-extra';
 import * as vscode from 'vscode';
-import { AppSettingsTreeItem, confirmOverwriteSettings, IAppSettingsClient } from "vscode-azureappservice";
+import { AppSettingsTreeItem, IAppSettingsClient } from "vscode-azureappservice";
 import { IActionContext } from "vscode-azureextensionui";
 import { localSettingsFileName, viewOutput } from "../../constants";
 import { ext } from "../../extensionVariables";
@@ -15,6 +15,7 @@ import { localize } from "../../localize";
 import * as api from '../../vscode-azurefunctions.api';
 import { decryptLocalSettings } from "./decryptLocalSettings";
 import { encryptLocalSettings } from "./encryptLocalSettings";
+import { filterDownloadAppSettings } from "./filterDownloadAppSettings";
 import { getLocalSettingsFile } from "./getLocalSettingsFile";
 
 export async function downloadAppSettings(context: IActionContext, node?: AppSettingsTreeItem): Promise<void> {
@@ -28,9 +29,13 @@ export async function downloadAppSettings(context: IActionContext, node?: AppSet
     });
 }
 
-export async function downloadAppSettingsInternal(context: IActionContext, client: api.IAppSettingsClient): Promise<void> {
+export async function downloadAppSettingsInternal(context: IActionContext, client: api.IAppSettingsClient, localSettingsPath?: string): Promise<void> {
     const message: string = localize('selectLocalSettings', 'Select the destination file for your downloaded settings.');
-    const localSettingsPath: string = await getLocalSettingsFile(context, message);
+    let showMessage: boolean = false;
+    if (!localSettingsPath) {
+        localSettingsPath = await getLocalSettingsFile(context, message);
+        showMessage = true;
+    }
     const localSettingsUri: vscode.Uri = vscode.Uri.file(localSettingsPath);
 
     let localSettings: ILocalSettingsJson = await getLocalSettingsJson(context, localSettingsPath, true /* allowOverwrite */);
@@ -45,12 +50,15 @@ export async function downloadAppSettingsInternal(context: IActionContext, clien
         if (!localSettings.Values) {
             localSettings.Values = {};
         }
+        if (!localSettings.SettingsToIgnoreOnDeployment) {
+            localSettings.SettingsToIgnoreOnDeployment = [];
+        }
 
         const remoteSettings: WebSiteManagementModels.StringDictionary = await client.listApplicationSettings();
 
         ext.outputChannel.appendLog(localize('downloadingSettings', 'Downloading settings...'), { resourceName: client.fullName });
         if (remoteSettings.properties) {
-            await confirmOverwriteSettings(context, remoteSettings.properties, localSettings.Values, localSettingsFileName);
+            await filterDownloadAppSettings(context, remoteSettings.properties, localSettings.Values, localSettings.SettingsToIgnoreOnDeployment, localSettingsFileName);
         }
 
         await fse.ensureFile(localSettingsPath);
@@ -62,15 +70,16 @@ export async function downloadAppSettingsInternal(context: IActionContext, clien
         }
     }
 
-    ext.outputChannel.appendLog(localize('downloadedSettings', 'Successfully downloaded settings.'), { resourceName: client.fullName });
-    const openFile: string = localize('openFile', 'Open File');
-    // don't wait
-    void vscode.window.showInformationMessage(localize('downloadedSettingsFrom', 'Successfully downloaded settings from "{0}".', client.fullName), openFile, viewOutput).then(async result => {
-        if (result === openFile) {
-            const doc: vscode.TextDocument = await vscode.workspace.openTextDocument(localSettingsUri);
-            await vscode.window.showTextDocument(doc);
-        } else if (result === viewOutput) {
-            ext.outputChannel.show();
-        }
-    });
+    if (showMessage) {
+        ext.outputChannel.appendLog(localize('downloadedSettings', 'Successfully downloaded settings.'), { resourceName: client.fullName });
+        const openFile: string = localize('openFile', 'Open File');
+        void vscode.window.showInformationMessage(localize('downloadedSettingsFrom', 'Successfully downloaded settings from "{0}".', client.fullName), openFile, viewOutput).then(async result => {
+            if (result === openFile) {
+                const doc: vscode.TextDocument = await vscode.workspace.openTextDocument(localSettingsUri);
+                await vscode.window.showTextDocument(doc);
+            } else if (result === viewOutput) {
+                ext.outputChannel.show();
+            }
+        });
+    }
 }

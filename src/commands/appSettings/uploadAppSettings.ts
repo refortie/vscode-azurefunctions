@@ -6,7 +6,7 @@
 import { WebSiteManagementModels } from "@azure/arm-appservice";
 import * as fse from 'fs-extra';
 import * as vscode from 'vscode';
-import { AppSettingsTreeItem, confirmOverwriteSettings, IAppSettingsClient } from "vscode-azureappservice";
+import { AppSettingsTreeItem, IAppSettingsClient } from "vscode-azureappservice";
 import { IActionContext } from "vscode-azureextensionui";
 import { localSettingsFileName, viewOutput } from "../../constants";
 import { ext } from "../../extensionVariables";
@@ -15,6 +15,7 @@ import { localize } from "../../localize";
 import * as api from '../../vscode-azurefunctions.api';
 import { decryptLocalSettings } from "./decryptLocalSettings";
 import { encryptLocalSettings } from "./encryptLocalSettings";
+import { filterUploadAppSettings } from "./filterUploadAppSettings";
 import { getLocalSettingsFile } from "./getLocalSettingsFile";
 
 export async function uploadAppSettings(context: IActionContext, node?: AppSettingsTreeItem, workspaceFolder?: vscode.WorkspaceFolder): Promise<void> {
@@ -48,10 +49,13 @@ export async function uploadAppSettingsInternal(context: IActionContext, client:
         if (!remoteSettings.properties) {
             remoteSettings.properties = {};
         }
+        if (!localSettings.SettingsToIgnoreOnDeployment) {
+            localSettings.SettingsToIgnoreOnDeployment = [];
+        }
 
         const uploadSettings: string = localize('uploadingSettings', 'Uploading settings...');
         ext.outputChannel.appendLog(uploadSettings, { resourceName: client.fullName });
-        await confirmOverwriteSettings(context, localSettings.Values, remoteSettings.properties, client.fullName);
+        await filterUploadAppSettings(context, localSettings.Values, remoteSettings.properties, localSettings.SettingsToIgnoreOnDeployment, client.fullName);
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: localize('uploadingSettingsTo', 'Uploading settings to "{0}"...', client.fullName) }, async () => {
             await client.updateApplicationSettings(remoteSettings);
