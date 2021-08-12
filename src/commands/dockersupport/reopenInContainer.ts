@@ -18,7 +18,7 @@ export async function reopenInContainer(context: IProjectWizardContext, node?: A
         if (node) {
             const message: string = localize('selectFunctionProject', 'Select your App Functions Project');
             const projectFilePath: string = await getProjectFolder(context, message, context.workspacePath);
-            vscode.commands.executeCommand('remote-containers.reopenInContainer', vscode.Uri.file(projectFilePath));
+            void vscode.commands.executeCommand('remote-containers.reopenInContainer', vscode.Uri.file(projectFilePath));
         } else {
             void vscode.window.showInformationMessage(localize('noProjectOpened', 'Conditions not met. Cannot use Docker with this project'));
         }

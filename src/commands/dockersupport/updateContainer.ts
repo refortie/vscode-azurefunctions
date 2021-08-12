@@ -15,7 +15,7 @@ export async function updateContainer(context: IActionContext, node: AzExtTreeIt
 
     try {
         const projectFilePath: string = await getProjectFolder(context, node.label);
-        vscode.commands.executeCommand('remote-containers.rebuildAndReopenInContainer', vscode.Uri.file(projectFilePath))
+        void vscode.commands.executeCommand('remote-containers.rebuildAndReopenInContainer', vscode.Uri.file(projectFilePath))
     } catch (error) {
         void vscode.window.showInformationMessage(localize('cannotRebuildandReopen', 'Failed to update and reopen project in a dev container.'));
     }
