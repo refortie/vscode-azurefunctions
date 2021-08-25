@@ -100,5 +100,7 @@
     "azureFunctions.viewCommitInGitHub": "View Commit in GitHub",
     "azureFunctions.viewDeploymentLogs": "View Deployment Logs",
     "azureFunctions.viewProperties": "View Properties",
-    "azureFunctions.cloneLocally": "Clone Project Locally..."
+    "azureFunctions.cloneLocally": "Download Project...",
+    "azureFunctions.reopenInContainer": "Reopen in Container...",
+    "azureFunctions.updateContainer": "Update Dev Container..."
 }
